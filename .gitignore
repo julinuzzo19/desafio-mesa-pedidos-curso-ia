@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Mesa de Pedidos: lo que el sistema genera al correr (índice FAISS, checkpoints)
+artefactos/

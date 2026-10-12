@@ -1,4 +1,4 @@
-﻿sku,nombre,rubro,marca,unidad,precio_lista,alicuota_iva,stock,deposito
+sku,nombre,rubro,marca,unidad,precio_lista,alicuota_iva,stock,deposito
 AB-1020,"Disco de corte metal 115 x 1,0 mm",Abrasivos,Tyrolit,unidad,3250.0,21.0,1840,Cordoba
 AB-1035,"Disco de corte metal 180 x 1,6 mm",Abrasivos,Tyrolit,unidad,5900.0,21.0,720,Cordoba
 AB-1120,"Disco de desbaste 115 x 6,0 mm",Abrasivos,Tyrolit,unidad,6800.0,21.0,410,Cordoba

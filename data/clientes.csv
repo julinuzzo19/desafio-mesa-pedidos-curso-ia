@@ -1,4 +1,4 @@
-﻿cuit,razon_social,provincia,localidad,condicion_iva,categoria,limite_credito,saldo_actual,dias_plazo,descuento_habitual,estado,mora_dias
+cuit,razon_social,provincia,localidad,condicion_iva,categoria,limite_credito,saldo_actual,dias_plazo,descuento_habitual,estado,mora_dias
 30-71455982-2,Ferreteria El Tornillo Feliz S.R.L.,Cordoba,Villa Maria,Responsable Inscripto,A,4500000.0,1280000.0,30,12.0,activo,0
 30-70988341-7,Metalurgica San Jorge S.A.,Santa Fe,Rafaela,Responsable Inscripto,A,9000000.0,7450000.0,45,15.0,activo,0
 27-28455109-0,Roberto Gimenez Herramientas,Cordoba,Rio Cuarto,Monotributo,C,900000.0,310000.0,0,5.0,activo,0
