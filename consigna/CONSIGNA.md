@@ -50,7 +50,7 @@ trabajo. Esta es la forma a la que tenés que llegar:
               ┌───────────┼───────────┐
         (consulta)    (pedido)    (derivar)
               │           │           │
-   [responder_consulta]   │   [derivar_humano]
+   [E]   │   [derivar_humano]
          ↑ RAG            │           │
               │     [extraer_pedido]  │      ← LLM + structured output
              END          │          END
@@ -70,7 +70,7 @@ trabajo. Esta es la forma a la que tenés que llegar:
                                              END
 ```
 
-### El vocabulario
+### FEl vocabulario
 
 | Término                                         | Qué es, literalmente                                                                                                                                                                                                                                                                                                  |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
