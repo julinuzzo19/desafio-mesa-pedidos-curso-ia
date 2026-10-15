@@ -17,6 +17,7 @@ load_dotenv(RAIZ / ".env")
 CARPETA_POLITICAS = RAIZ / "data" / "politicas"
 RUTA_CATALOGO = RAIZ / "data" / "catalogo.csv"
 RUTA_CLIENTES = RAIZ / "data" / "clientes.csv"
+RUTA_BANDEJA = RAIZ / "data" / "bandeja.jsonl"
 CARPETA_INDICE = RAIZ / "artifacts" / "indice_faiss"  # no se versiona: se regenera
 
 # --- Modelos ---
