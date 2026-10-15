@@ -3,14 +3,16 @@
 # Para instalar:   pip install -r requirements.txt
 
 # --- LangChain ---
+langchain==1.3.14             # init_chat_model / init_embeddings: el proveedor sale del .env
 langchain-core==1.5.3
 langchain-community==0.4.2
 langchain-text-splitters==1.1.2
 
-# --- LLM: Groq ---
-langchain-groq==1.1.3
+# --- Proveedores (instalar el del proveedor que se use en el .env) ---
+langchain-groq==1.1.3         # LLM en Groq
+langchain-openai==1.4.3       # LLM y embeddings en OpenAI
 
-# --- Embeddings: BAAI/bge-m3 local (GPU o CPU) ---
+# --- Embeddings locales (opcional): BAAI/bge-m3 en GPU o CPU ---
 langchain-huggingface==1.2.2
 sentence-transformers==5.1.2
 torch==2.9.0

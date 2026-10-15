@@ -18,12 +18,19 @@ CARPETA_POLITICAS = RAIZ / "data" / "politicas"
 RUTA_CATALOGO = RAIZ / "data" / "catalogo.csv"
 RUTA_CLIENTES = RAIZ / "data" / "clientes.csv"
 RUTA_BANDEJA = RAIZ / "data" / "bandeja.jsonl"
-CARPETA_INDICE = RAIZ / "artifacts" / "indice_faiss"  # no se versiona: se regenera
 
-# --- Modelos ---
+# --- Modelos (el proveedor se elige en el .env; la clave de cada uno también va ahí) ---
+PROVEEDOR_LLM = os.getenv("PROVEEDOR_LLM", "groq")  # groq | openai
 MODELO = os.getenv("MODELO", "openai/gpt-oss-120b")
+PROVEEDOR_EMBEDDINGS = os.getenv("PROVEEDOR_EMBEDDINGS", "huggingface")  # huggingface (local) | openai
 MODELO_EMBEDDINGS = os.getenv("MODELO_EMBEDDINGS", "BAAI/bge-m3")
-DISPOSITIVO_EMBEDDINGS = os.getenv("DISPOSITIVO_EMBEDDINGS", "cpu")
+DISPOSITIVO_EMBEDDINGS = os.getenv("DISPOSITIVO_EMBEDDINGS", "cpu")  # sólo para huggingface
+
+# Un índice por modelo de embeddings: un índice sólo sirve con el modelo que lo generó.
+# Así, cambiar de modelo en el .env usa (o construye) su propio índice, en vez de mezclar
+# vectores de dos modelos. Ej.: artifacts/indice_faiss/huggingface_BAAI-bge-m3
+_nombre_indice = f"{PROVEEDOR_EMBEDDINGS}_{MODELO_EMBEDDINGS}".replace("/", "-")
+CARPETA_INDICE = RAIZ / "artifacts" / "indice_faiss" / _nombre_indice  # no se versiona: se regenera
 
 # --- RAG (Paso 1: punto de partida, se ajusta con pruebas propias, nunca con el golden set) ---
 TAMANO_CHUNK = 1000

@@ -13,12 +13,11 @@ import shutil
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-from langchain_groq import ChatGroq
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel, Field
 
 from mesa_pedidos import config
+from mesa_pedidos.modelos import crear_embeddings, crear_llm
 
 
 # =============================================================================
@@ -59,16 +58,6 @@ class RespuestaRAG(BaseModel):
 # Fase 1: indexar (una vez)
 # =============================================================================
 
-def crear_embeddings() -> HuggingFaceEmbeddings:
-    """El modelo que convierte texto en vectores. Corre local, no llama a ninguna API."""
-    # Se usa al indexar y al consultar: tiene que ser el mismo, si no los vectores no se comparan.
-    return HuggingFaceEmbeddings(
-        model_name=config.MODELO_EMBEDDINGS,
-        model_kwargs={"device": config.DISPOSITIVO_EMBEDDINGS},  # "cpu" o "cuda"
-        encode_kwargs={"normalize_embeddings": True},  # vectores de largo 1: la similitud se mide sólo por dirección
-    )
-
-
 def cargar_paginas() -> list[Document]:
     """Lee los 4 PDF y devuelve una lista con un Document por página."""
     archivos = sorted(config.CARPETA_POLITICAS.glob("*.pdf"))  # sorted: siempre el mismo orden
@@ -100,7 +89,7 @@ def construir_indice() -> FAISS:
     # Cada chunk hereda la metadata (documento, página) de la página de la que salió.
     chunks = splitter.split_documents(paginas)
     print(f"  Indexando {len(paginas)} páginas en {len(chunks)} chunks "
-          f"con {config.MODELO_EMBEDDINGS} ({config.DISPOSITIVO_EMBEDDINGS})...")
+          f"con {config.PROVEEDOR_EMBEDDINGS}: {config.MODELO_EMBEDDINGS}...")
 
     # Calcula el vector de cada chunk y arma el índice (el paso caro).
     indice = FAISS.from_documents(chunks, crear_embeddings())
@@ -183,9 +172,8 @@ def responder(pregunta: str, indice: FAISS) -> tuple[RespuestaRAG, list[Document
     chunks = indice.similarity_search(pregunta, k=config.TOP_K)
 
     # 2. El LLM, obligado a responder con la forma de RespuestaLLM.
-    #    temperature=0: la misma pregunta da siempre la misma respuesta.
-    llm = ChatGroq(model=config.MODELO, temperature=0)
-    llm_estructurado = llm.with_structured_output(RespuestaLLM)
+    #    El proveedor y el modelo salen del .env (ver modelos.py).
+    llm_estructurado = crear_llm().with_structured_output(RespuestaLLM)
 
     # 3. Generación: las reglas van como mensaje de sistema; los fragmentos y la pregunta, como
     #    mensaje del usuario. Si la salida no cumple RespuestaLLM, falla acá de forma visible.

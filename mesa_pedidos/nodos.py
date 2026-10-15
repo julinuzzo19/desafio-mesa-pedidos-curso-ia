@@ -7,11 +7,10 @@ mezcla con el resto. Cada uno deja una línea en log: qué nodo actuó y qué de
 
 from typing import Literal
 
-from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
 
-from mesa_pedidos import config
 from mesa_pedidos.estado import EstadoMesa
+from mesa_pedidos.modelos import crear_llm
 from mesa_pedidos.tools import CLIENTES
 
 # Lo que los demás nodos usan del cliente. Las condiciones financieras (límite, saldo, mora,
@@ -97,11 +96,10 @@ def clasificar(estado: EstadoMesa) -> dict:
     """
     texto = estado["mensaje"]["texto"]
 
-    # temperature=0: el mismo mensaje se clasifica siempre igual.
-    # ChatGroq reintenta solo ante fallas de red (max_retries=2). Si después de eso Groq sigue
-    # sin responder, la excepción sube a propósito: una caída de red no es una decisión de
-    # negocio, y si se mandara a derivar ensuciaría la medición.
-    llm = ChatGroq(model=config.MODELO, temperature=0)
+    # El cliente del proveedor reintenta solo ante fallas de red. Si después de eso el
+    # proveedor sigue sin responder, la excepción sube a propósito: una caída de red no es una
+    # decisión de negocio, y si se mandara a derivar ensuciaría la medición.
+    llm = crear_llm()
 
     # include_raw=True: si la salida no cumple ClasificacionLLM, en vez de lanzar una excepción
     # devuelve {"raw": ..., "parsed": None, "parsing_error": <el error>}.
