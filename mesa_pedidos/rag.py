@@ -127,7 +127,12 @@ Reglas:
 - No uses conocimiento propio ni completes con suposiciones.
 - En fragmentos_usados, poné el número de cada fragmento que usaste para responder.
 - Si los fragmentos no alcanzan para responder, decilo en la respuesta, marcá alcanza = false
-  y no inventes."""
+  y no inventes.
+- Si te paso la fecha del mensaje, los plazos se calculan contra esa fecha, no contra hoy.
+- Si te paso los datos del cliente, usalos para aplicar las reglas que dependen de quién es
+  (provincia, condición de IVA, categoría). Si el mensaje dice otra cosa sobre el cliente, usá
+  estos datos y mencioná la diferencia. Lo que el cliente pregunta (un destino, un monto, un
+  producto) sale del mensaje."""
 
 
 def formatear_contexto(chunks: list[Document]) -> str:
@@ -165,19 +170,49 @@ def armar_citas(fragmentos_usados: list[int], chunks: list[Document]) -> list[Ci
     return citas
 
 
-def responder(pregunta: str, indice: FAISS) -> tuple[RespuestaRAG, list[Document]]:
-    """Responde una pregunta con los PDF de políticas. Devuelve la respuesta y los chunks usados."""
+def formatear_cliente(cliente: dict) -> str:
+    """Arma el bloque con los datos del cliente que ve el LLM.
+
+    Ejemplo:
+        Razón social: Ferreteria El Tornillo Feliz S.R.L.
+        Provincia: Cordoba · Localidad: Villa Maria
+        Condición de IVA: Responsable Inscripto · Categoría: A
+    """
+    return (
+        f"Razón social: {cliente['razon_social']}\n"
+        f"Provincia: {cliente['provincia']} · Localidad: {cliente['localidad']}\n"
+        f"Condición de IVA: {cliente['condicion_iva']} · Categoría: {cliente['categoria']}"
+    )
+
+
+def responder(
+    pregunta: str,
+    indice: FAISS,
+    fecha: str | None = None,
+    cliente: dict | None = None,
+) -> tuple[RespuestaRAG, list[Document]]:
+    """Responde una pregunta con los PDF de políticas. Devuelve la respuesta y los chunks usados.
+
+    fecha y cliente son opcionales: el grafo los pasa (fecha del mensaje y datos del registro);
+    la prueba manual desde la terminal puede no pasarlos.
+    """
     # 1. Recuperación: FAISS convierte la pregunta en vector y trae los k chunks más parecidos.
     #    Siempre trae k, aunque ninguno sirva: decidir si alcanzan es trabajo del LLM.
     chunks = indice.similarity_search(pregunta, k=config.TOP_K)
 
     # 2. El LLM, obligado a responder con la forma de RespuestaLLM.
-    #    El proveedor y el modelo salen del .env (ver modelos.py).
     llm_estructurado = crear_llm().with_structured_output(RespuestaLLM)
 
     # 3. Generación: las reglas van como mensaje de sistema; los fragmentos y la pregunta, como
     #    mensaje del usuario. Si la salida no cumple RespuestaLLM, falla acá de forma visible.
-    mensaje_usuario = f"Fragmentos:\n\n{formatear_contexto(chunks)}\n\nPregunta: {pregunta}"
+    #    La búsqueda usa sólo la pregunta: la fecha y el cliente no ayudan a encontrar fragmentos.
+    partes = [f"Fragmentos:\n\n{formatear_contexto(chunks)}"]
+    if fecha is not None:
+        partes.append(f"Fecha del mensaje: {fecha}")
+    if cliente is not None:
+        partes.append(f"Datos del cliente (registro):\n{formatear_cliente(cliente)}")
+    partes.append(f"Pregunta: {pregunta}")
+    mensaje_usuario = "\n\n".join(partes)
     salida = llm_estructurado.invoke([
         ("system", PROMPT_SISTEMA),
         ("human", mensaje_usuario),

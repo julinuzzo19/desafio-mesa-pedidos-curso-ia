@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from mesa_pedidos.estado import EstadoMesa
+from mesa_pedidos import rag
 from mesa_pedidos.modelos import crear_llm
 from mesa_pedidos.tools import CLIENTES
 
@@ -127,3 +128,45 @@ def clasificar(estado: EstadoMesa) -> dict:
         "clasificacion": {"tipo": salida.tipo, "motivo": None},
         "log": [f"clasificar: {salida.tipo}"],
     }
+
+
+# =============================================================================
+# responder_consulta
+# =============================================================================
+
+# El índice se carga la primera vez que se responde una consulta y queda en memoria para las
+# siguientes. No se carga al importar este archivo: tarda (carga el modelo de embeddings) y
+# muchos usos de nodos.py no lo necesitan (ej. probar sólo clasificar).
+_indice = None
+
+
+def obtener_indice():
+    """Devuelve el índice, cargándolo sólo la primera vez."""
+    global _indice  # global: se modifica la variable del archivo, no una local
+    if _indice is None:
+        _indice = rag.obtener_indice()
+    return _indice
+
+
+def responder_consulta(estado: EstadoMesa) -> dict:
+    """Responde la consulta con los PDF de políticas, citando documento y página.
+
+    Le pasa al RAG la fecha del mensaje (los plazos se miden contra ella, no contra hoy) y los
+    datos del cliente del registro (las reglas que dependen de quién es salen de ahí, no del texto).
+    Ejemplo de lo que devuelve:
+        {"respuesta": RespuestaRAG(respuesta="...", citas=[...], alcanza=True),
+         "log": ["responder_consulta: alcanza sí, 1 cita"]}
+    """
+    mensaje = estado["mensaje"]
+
+    # Si el proveedor no responde, la excepción sube: igual que en clasificar.
+    respuesta, _chunks = rag.responder(
+        mensaje["texto"],
+        obtener_indice(),
+        fecha=mensaje["fecha"],
+        cliente=estado["cliente"],
+    )
+
+    alcanza = "sí" if respuesta.alcanza else "no"
+    linea = f"responder_consulta: alcanza {alcanza}, {len(respuesta.citas)} cita(s)"
+    return {"respuesta": respuesta, "log": [linea]}
