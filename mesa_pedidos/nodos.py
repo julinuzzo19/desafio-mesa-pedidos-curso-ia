@@ -66,14 +66,17 @@ Leé el mensaje de un cliente y decidí su tipo según lo que el cliente QUIERE,
 palabras que usa (mencionar productos o cantidades no lo convierte en pedido).
 
 - consulta: quiere información que está en las políticas de la empresa (condiciones
-  comerciales, descuentos, envíos, garantías, devoluciones, formas de pago). Asesorar sobre qué
-  producto le conviene NO es una consulta: las políticas no lo cubren.
+  comerciales, descuentos, envíos, garantías, devoluciones, formas de pago, fichas técnicas).
+  Las políticas cubren información específica de los productos (características, qué incluye,
+  compatibilidades), pero no recomendaciones: pedir que le aconsejen qué producto le conviene
+  NO es una consulta.
 - pedido: quiere comprar productos. Si además pide condiciones (destino, plazo, forma de pago,
   un descuento), sigue siendo pedido: esas condiciones se evalúan después.
 - derivar: todo lo demás. Reclamos, mensajes de proveedores, pedidos de hablar con una persona.
 
-Si una parte del mensaje necesita a una persona, es derivar aunque el resto sea una consulta o
-un pedido: un pedido con un reclamo, o una pregunta con un pedido de que lo llamen o lo visiten.
+Si una parte del mensaje pide comunicación directa con una persona, es derivar aunque el resto
+sea una consulta o un pedido. Cuenta sólo si el cliente lo pide de forma explícita: que lo
+llamen, que lo visiten, hablar con alguien. Lo mismo si el mensaje trae un reclamo.
 
 No evalúes montos, stock ni crédito: eso se revisa después.
 
