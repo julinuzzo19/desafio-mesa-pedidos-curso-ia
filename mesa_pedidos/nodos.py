@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from mesa_pedidos.estado import EstadoMesa
+from mesa_pedidos.estado import EstadoMesa, Pedido
 from mesa_pedidos import rag
 from mesa_pedidos.modelos import crear_llm
 from mesa_pedidos.tools import CLIENTES
@@ -170,3 +170,102 @@ def responder_consulta(estado: EstadoMesa) -> dict:
     alcanza = "sí" if respuesta.alcanza else "no"
     linea = f"responder_consulta: alcanza {alcanza}, {len(respuesta.citas)} cita(s)"
     return {"respuesta": respuesta, "log": [linea]}
+
+
+# =============================================================================
+# extraer_pedido
+# =============================================================================
+
+class Producto(BaseModel):
+    """Un producto del pedido: código y cantidad, tal como los escribió el cliente."""
+    sku: str = Field(description="Código del producto tal como figura en el mensaje, ej. AB-1020.")
+    cantidad: int = Field(gt=0, description="Cantidad pedida de ese producto.")  # gt=0: mayor a cero
+
+
+class PedidoLLM(BaseModel):
+    """Lo que el LLM está obligado a devolver (structured output).
+
+    Sólo lo que dice el mensaje: lo que no menciona queda en None. Completar con los datos
+    habituales del cliente es trabajo de validar_pedido, así se distingue lo que pidió el
+    cliente de lo que se supuso.
+    """
+    productos: list[Producto] = Field(description="Los productos pedidos, uno por código.")
+    destino: str | None = Field(
+        default=None, description="Lugar de entrega si el mensaje lo dice; si no, null."
+    )
+    forma_pago: Literal["cuenta_corriente", "contado_contra_entrega", "anticipado_transferencia"] | None = Field(
+        default=None,
+        description=(
+            "cuenta_corriente si pide pagar a N días o cargarlo a la cuenta; "
+            "contado_contra_entrega si paga al recibir; "
+            "anticipado_transferencia si paga por transferencia antes del envío; "
+            "null si no lo dice."
+        ),
+    )
+    plazo_dias: int | None = Field(
+        default=None, description="Días de plazo de pago si los dice (ej. 'a 30 días' -> 30); si no, null."
+    )
+    descuento_pedido: float | None = Field(
+        default=None, description="Porcentaje de descuento que pide el cliente (ej. 15); si no pide, null."
+    )
+
+
+PROMPT_EXTRAER = """Sos el asistente de la Mesa de Pedidos de una distribuidora.
+Extraé del mensaje del cliente los datos del pedido.
+
+Reglas:
+- Extraé SÓLO lo que el mensaje dice. Si un dato no aparece, dejalo en null: no lo completes,
+  no lo supongas. "Como siempre" sin más detalle no es un dato: dejalo en null.
+- Copiá cada código de producto tal como está escrito, con su cantidad.
+- "A N días" o "cargarlo a la cuenta" es cuenta_corriente; los N días van en plazo_dias.
+
+Ejemplos:
+- "Mandame 12 rollos C-25 y 3 mechas M-8 a Rafaela, a 15 días." ->
+  productos [C-25 x 12, M-8 x 3], destino Rafaela, forma_pago cuenta_corriente, plazo_dias 15
+- "Quiero 40 tornillos T-100, pago con transferencia antes de que salga. Si me hacen un 8%..." ->
+  productos [T-100 x 40], forma_pago anticipado_transferencia, descuento_pedido 8
+- "Lo de siempre: 5 baldes P-20." -> productos [P-20 x 5], todo lo demás null"""
+
+
+def extraer_pedido(estado: EstadoMesa) -> dict:
+    """Convierte el texto del pedido en datos: productos, destino, forma de pago, plazo, descuento.
+
+    Si la salida del LLM no se puede leer, no lanza: escribe extraido=False con el motivo, y
+    validar_pedido lo manda a derivar (después de este nodo no hay router).
+    Ejemplo de lo que devuelve:
+        {"pedido": {"extraido": True, "productos": [{"sku": "AB-1020", "cantidad": 200}], ...},
+         "log": ["extraer_pedido: 1 producto(s), pago sin indicar"]}
+    """
+    texto = estado["mensaje"]["texto"]
+
+    # Igual que en clasificar: si el proveedor no responde, la excepción sube.
+    llm_estructurado = crear_llm().with_structured_output(PedidoLLM, include_raw=True)
+    resultado = llm_estructurado.invoke([
+        ("system", PROMPT_EXTRAER),
+        ("human", texto),
+    ])
+
+    salida = resultado["parsed"]
+    if salida is None:
+        # Mismas claves que un pedido extraído, con los datos vacíos: quien lo lea encuentra
+        # siempre la misma forma (ver Pedido en estado.py).
+        pedido_fallido: Pedido = {
+            "extraido": False,
+            "motivo": f"salida inválida del LLM: {resultado['parsing_error']}",
+            "productos": [],
+            "destino": None,
+            "forma_pago": None,
+            "plazo_dias": None,
+            "descuento_pedido": None,
+        }
+        return {
+            "pedido": pedido_fallido,
+            "log": ["extraer_pedido: no se pudo extraer (salida inválida)"],
+        }
+
+    # model_dump convierte el objeto Pydantic en un dict común, que es lo que guarda el estado.
+    pedido: Pedido = {"extraido": True, "motivo": None, **salida.model_dump()}
+
+    pago = salida.forma_pago if salida.forma_pago is not None else "sin indicar"
+    linea = f"extraer_pedido: {len(salida.productos)} producto(s), pago {pago}"
+    return {"pedido": pedido, "log": [linea]}
