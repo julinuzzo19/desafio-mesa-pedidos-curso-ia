@@ -8,6 +8,7 @@ Dos fases:
 Para probarlo desde la terminal: scripts/probar_rag.py.
 """
 
+import re
 import shutil
 
 from langchain_community.document_loaders import PyPDFLoader
@@ -58,6 +59,30 @@ class RespuestaRAG(BaseModel):
 # Fase 1: indexar (una vez)
 # =============================================================================
 
+# Formatos de título de sección de los PDF de políticas:
+#   "ART. 2 - MONEDA, PRECIOS Y VIGENCIA"   (condiciones comerciales)
+#   "3. FLETE BONIFICADO"                   (logística, devoluciones)
+#   "HERRAMIENTA ELECTRICA"                 (fichas técnicas: rubro en mayúsculas)
+PATRON_TITULO = re.compile(r"^(ART\. \d+ - .+|\d+\. [A-Z].+|[A-Z][A-Z ,]{8,})$")
+
+
+def separar_secciones(texto: str) -> str:
+    """Agrega una línea en blanco antes de cada título de sección.
+
+    El splitter corta primero en las líneas en blanco: así cada sección queda en su propio
+    chunk en vez de mezclarse con la anterior. Si un título no coincide con el patrón, la
+    sección se corta por tamaño, como antes.
+
+    Ejemplo: "...fin del art. 1.\\nART. 2 - MONEDA" -> "...fin del art. 1.\\n\\nART. 2 - MONEDA"
+    """
+    lineas = []
+    for linea in texto.splitlines():
+        if PATRON_TITULO.match(linea.strip()):
+            lineas.append("")  # la línea vacía, al unir con \n, deja el \n\n antes del título
+        lineas.append(linea)
+    return "\n".join(lineas)
+
+
 def cargar_paginas() -> list[Document]:
     """Lee los 4 PDF y devuelve una lista con un Document por página."""
     archivos = sorted(config.CARPETA_POLITICAS.glob("*.pdf"))  # sorted: siempre el mismo orden
@@ -73,6 +98,7 @@ def cargar_paginas() -> list[Document]:
                 "documento": archivo.name,
                 "pagina": pagina.metadata["page"] + 1,
             }
+            pagina.page_content = separar_secciones(pagina.page_content)
             paginas.append(pagina)
     return paginas
 
