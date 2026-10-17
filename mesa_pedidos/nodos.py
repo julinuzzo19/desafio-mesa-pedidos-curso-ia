@@ -7,6 +7,7 @@ mezcla con el resto. Cada uno deja una línea en log: qué nodo actuó y qué de
 
 from typing import Literal
 
+from langgraph.types import interrupt
 from pydantic import BaseModel, Field
 
 from mesa_pedidos.estado import EstadoMesa, Pedido
@@ -528,6 +529,70 @@ def validar_pedido(estado: EstadoMesa) -> dict:
 
 
 # =============================================================================
+# Aprobación de Gerencia: el grafo se frena y espera una respuesta
+# =============================================================================
+
+def armar_payload(estado: EstadoMesa) -> dict:
+    """Lo que ve Gerencia para decidir sin abrir otra pantalla.
+
+    Todo sale del estado tal como lo dejó validar_pedido: los números son los mismos que
+    produjeron las alertas, no se vuelve a consultar nada. Quedan afuera el log y la
+    clasificación (auditoría, no sirven para decidir).
+    """
+    mensaje = estado["mensaje"]
+    cliente = estado["cliente"]
+    decision = estado["decision"]
+    escenario = decision["escenario"]
+
+    return {
+        "mensaje": {"id": mensaje["id"], "fecha": mensaje["fecha"], "texto": mensaje["texto"]},
+        "cliente": {
+            "razon_social": cliente["razon_social"],
+            "cuit": cliente["cuit"],
+            "categoria": cliente["categoria"],
+        },
+        "productos": estado["pedido"]["productos"],
+        "neto": escenario["neto"],
+        "forma_pago": escenario["forma_pago"],
+        "plazo_dias": escenario["plazo_dias"],
+        "destino": escenario["destino"],
+        "descuento_total": escenario["descuento_total"],
+        "tope_descuento": escenario["tope_descuento"],
+        "credito": escenario["credito"],
+        # Todas, no sólo el motivo: con una sola, Gerencia aprobaría sin ver las demás.
+        "alertas": decision["alertas"],
+        "pregunta": "¿Se aprueba el pedido? Responder {'aprobar': True} o {'aprobar': False}.",
+    }
+
+
+def aprobacion_humana(estado: EstadoMesa) -> dict:
+    """Frena el grafo hasta que Gerencia apruebe o rechace el pedido, en bloque.
+
+    interrupt() guarda el payload en el checkpoint y corta la ejecución. Al retomar con
+    Command(resume={"aprobar": ...}), este nodo vuelve a correr desde el principio y esta
+    vez interrupt() devuelve esa respuesta. Por eso no hay nada con efectos antes del
+    interrupt: la línea del log se arma después, una sola vez.
+
+    Ejemplo de respuesta: {"aprobar": False} → el router lleva a rechazar_pedido.
+    """
+    respuesta = interrupt(armar_payload(estado))
+
+    # Una respuesta sin un booleano en "aprobar" no se interpreta: se falla en el lugar.
+    if not isinstance(respuesta, dict) or not isinstance(respuesta.get("aprobar"), bool):
+        raise ValueError(
+            f"aprobacion_humana: respuesta inválida {respuesta!r}; se espera {{'aprobar': True/False}}"
+        )
+
+    aprobar = respuesta["aprobar"]
+    if aprobar:
+        resultado = "aprobado"
+    else:
+        resultado = "rechazado"
+    linea = f"aprobacion_humana: {estado['mensaje']['id']} {resultado} por Gerencia"
+    return {"aprobacion": {"aprobar": aprobar}, "log": [linea]}
+
+
+# =============================================================================
 # Hojas: donde termina cada mensaje
 # =============================================================================
 # El sistema es de solo lectura: ninguna hoja modifica stock ni saldo. Cada una deja en el
@@ -563,14 +628,21 @@ def derivar_humano(estado: EstadoMesa) -> dict:
 
 
 def rechazar_pedido(estado: EstadoMesa) -> dict:
-    """Registra el rechazo del pedido con su motivo."""
+    """Registra el rechazo del pedido con su motivo, y si lo decidió Gerencia.
+
+    Le llegan pedidos de dos lugares: de validar_pedido (la política no deja margen) o de
+    aprobacion_humana (Gerencia dijo que no). aprobacion en None quiere decir lo primero.
+    """
     id_mensaje = estado["mensaje"]["id"]
     motivo = estado["decision"]["motivo"]
-    return {"log": [f"rechazar_pedido: {id_mensaje} — {motivo}"]}
+    linea = f"rechazar_pedido: {id_mensaje} — {motivo}"
+    if estado["aprobacion"] is not None:
+        linea += " (rechazado por Gerencia)"
+    return {"log": [linea]}
 
 
 def confirmar_pedido(estado: EstadoMesa) -> dict:
-    """Registra el pedido confirmado: qué se confirmó y con qué condiciones.
+    """Registra el pedido confirmado: qué se confirmó, con qué condiciones y si lo aprobó Gerencia.
 
     No descuenta stock ni suma saldo (sistema de solo lectura): el resultado queda en el log.
     """
@@ -586,4 +658,7 @@ def confirmar_pedido(estado: EstadoMesa) -> dict:
         f"confirmar_pedido: {id_mensaje} — {cantidad_productos} producto(s), "
         f"neto ${escenario['neto']:,.0f}, {pago}, destino {escenario['destino']}"
     )
+    # Si pasó por Gerencia, se deja dicho quién lo autorizó y por qué estaba frenado.
+    if estado["aprobacion"] is not None:
+        linea += f" (aprobado por Gerencia: {'; '.join(estado['decision']['alertas'])})"
     return {"log": [linea]}

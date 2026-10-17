@@ -13,26 +13,16 @@ from mesa_pedidos.estado import EstadoMesa
 
 
 # =============================================================================
-# Nodo provisional (se reemplaza en el Paso 5 por el interrupt() real)
-# =============================================================================
-
-def aprobacion_humana(estado: EstadoMesa) -> dict:
-    """PROVISIONAL: deja el pedido pendiente de Gerencia, sin frenar el grafo.
-
-    En el Paso 5 se frena con interrupt(), Gerencia aprueba o rechaza, y un router lleva a
-    confirmar_pedido o rechazar_pedido según esa respuesta.
-    """
-    id_mensaje = estado["mensaje"]["id"]
-    motivo = estado["decision"]["motivo"]
-    return {"log": [f"aprobacion_humana: {id_mensaje} pendiente de Gerencia — {motivo}"]}
-
-
-# =============================================================================
 # Armado
 # =============================================================================
 
-def construir_grafo():
-    """Arma y compila el grafo. Todavía sin checkpointer (Paso 5)."""
+def construir_grafo(checkpointer=None):
+    """Arma y compila el grafo.
+
+    Con checkpointer, el estado de cada mensaje se guarda después de cada nodo (un thread por
+    mensaje); es lo que permite frenar en aprobacion_humana y retomar más tarde. Sin
+    checkpointer el grafo corre igual, pero un interrupt() no se puede retomar.
+    """
     grafo = StateGraph(EstadoMesa)
 
     # Los nodos: el nombre con que se los conecta y la función que corre.
@@ -41,7 +31,7 @@ def construir_grafo():
     grafo.add_node("responder_consulta", nodos.responder_consulta)
     grafo.add_node("extraer_pedido", nodos.extraer_pedido)
     grafo.add_node("validar_pedido", nodos.validar_pedido)
-    grafo.add_node("aprobacion_humana", aprobacion_humana)
+    grafo.add_node("aprobacion_humana", nodos.aprobacion_humana)
     grafo.add_node("confirmar_pedido", nodos.confirmar_pedido)
     grafo.add_node("rechazar_pedido", nodos.rechazar_pedido)
     grafo.add_node("derivar_humano", nodos.derivar_humano)
@@ -76,14 +66,20 @@ def construir_grafo():
         },
     )
 
+    # Bifurcación 3: según lo que respondió Gerencia al retomar.
+    grafo.add_conditional_edges(
+        "aprobacion_humana",
+        lambda estado: estado["aprobacion"]["aprobar"],
+        {True: "confirmar_pedido", False: "rechazar_pedido"},
+    )
+
     # Donde termina cada camino.
-    grafo.add_edge("responder_consulta", END)  
-    grafo.add_edge("aprobacion_humana", END)
+    grafo.add_edge("responder_consulta", END)
     grafo.add_edge("confirmar_pedido", END)
     grafo.add_edge("rechazar_pedido", END)
     grafo.add_edge("derivar_humano", END)
 
-    return grafo.compile()
+    return grafo.compile(checkpointer=checkpointer)
 
 
 def estado_inicial(mensaje: dict) -> EstadoMesa:
@@ -95,5 +91,6 @@ def estado_inicial(mensaje: dict) -> EstadoMesa:
         "respuesta": None,
         "pedido": None,
         "decision": None,
+        "aprobacion": None,
         "log": [],
     }

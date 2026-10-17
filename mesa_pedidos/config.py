@@ -32,6 +32,10 @@ DISPOSITIVO_EMBEDDINGS = os.getenv("DISPOSITIVO_EMBEDDINGS", "cpu")  # sólo par
 _nombre_indice = f"{PROVEEDOR_EMBEDDINGS}_{MODELO_EMBEDDINGS}".replace("/", "-")
 CARPETA_INDICE = RAIZ / "artifacts" / "indice_faiss" / _nombre_indice  # no se versiona: se regenera
 
+# Checkpoints del grafo: el estado de cada mensaje (un thread por mensaje), para poder retomar
+# uno frenado en aprobacion_humana. No se versiona: es el estado de una corrida.
+RUTA_CHECKPOINTS = RAIZ / "artifacts" / "checkpoints.sqlite"
+
 # --- RAG (Paso 1: punto de partida, se ajusta con pruebas propias, nunca con el golden set) ---
 TAMANO_CHUNK = 1000
 SOLAPAMIENTO_CHUNK = 150  # 15% del chunk

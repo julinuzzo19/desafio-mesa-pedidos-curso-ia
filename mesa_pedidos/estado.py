@@ -65,12 +65,17 @@ class Pedido(TypedDict):
     descuento_pedido: float | None  # porcentaje, ej. 25
 
 
+class Aprobacion(TypedDict):
+    """Lo que respondió Gerencia al retomar. Decide sobre el pedido en bloque, no por alerta."""
+    aprobar: bool
+
+
 class EstadoMesa(TypedDict):
     """El estado completo de un mensaje (un thread por mensaje).
 
     Ejemplo al arrancar (lo arma correr.py):
         {"mensaje": {...}, "cliente": None, "clasificacion": None, "respuesta": None,
-         "pedido": None, "decision": None, "log": []}
+         "pedido": None, "decision": None, "aprobacion": None, "log": []}
     """
 
     # Lo escribe correr.py en el estado inicial.
@@ -93,6 +98,10 @@ class EstadoMesa(TypedDict):
     # (crédito leído, neto). Van juntos para que Gerencia vea los mismos números que
     # produjeron la decisión. Su forma se define en ese sub-paso.
     decision: dict | None
+
+    # Lo escribe aprobacion_humana con la respuesta de Gerencia. None si el pedido no pasó
+    # por Gerencia: así las hojas saben si la decisión final fue de una persona.
+    aprobacion: Aprobacion | None
 
     # Lo escriben todos los nodos, una línea cada uno. Sin el reducer add, cada nodo
     # pisaría la lista del anterior y quedaría sólo la línea del último.
