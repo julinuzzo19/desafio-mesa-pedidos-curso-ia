@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from mesa_pedidos.estado import EstadoMesa, Pedido
 from mesa_pedidos import rag
 from mesa_pedidos.modelos import crear_llm
-from mesa_pedidos.tools import CLIENTES
+from mesa_pedidos.tools import CLIENTES, consultar_producto, verificar_credito
 
 # Lo que los demás nodos usan del cliente. Las condiciones financieras (límite, saldo, mora,
 # plazo, descuento) quedan afuera a propósito: las lee validar_pedido con verificar_credito,
@@ -269,3 +269,259 @@ def extraer_pedido(estado: EstadoMesa) -> dict:
     pago = salida.forma_pago if salida.forma_pago is not None else "sin indicar"
     linea = f"extraer_pedido: {len(salida.productos)} producto(s), pago {pago}"
     return {"pedido": pedido, "log": [linea]}
+
+
+# =============================================================================
+# validar_pedido
+# =============================================================================
+
+# Valores de condiciones_comerciales_2026.pdf. Si cambia el PDF, se cambian acá.
+PEDIDO_MINIMO_AB = 250_000            # art. 3: categorías A y B, neto sin IVA
+PEDIDO_MINIMO_C = 120_000             # art. 3: categoría C y monotributistas
+ESCALA_VOLUMEN = [                    # art. 4: (neto desde, % de descuento), de mayor a menor
+    (6_000_000, 12),
+    (3_000_000, 8),
+    (1_000_000, 5),
+]
+TOPE_DESCUENTO = 20                   # art. 5: descuento total sin consultar a Gerencia
+TOPE_DESCUENTO_MARCAS = 15            # art. 5: herramienta eléctrica de estas marcas
+MARCAS_TOPE_REDUCIDO = ["Dewalt", "Makita", "Bosch"]
+RUBRO_TOPE_REDUCIDO = "Herramienta electrica"
+MORA_GERENCIA = 30                    # art. 7: de 30 a 60 días, cada pedido va a Gerencia
+MORA_MAXIMA = 60                      # art. 7: más de 60, nada en cuenta corriente
+
+# Si fallan varias reglas, gana la peor: la que está más arriba en esta lista.
+PRIORIDAD_ACCIONES = ["rechazar", "derivar", "humano"]
+
+
+def calcular_neto(productos: list[dict]) -> float:
+    """Neto del pedido: precio de lista x cantidad, sin IVA y antes de descuentos.
+
+    Es la lectura de "monto neto" acordada en el Paso 2 (la que usa el art. 4 para elegir el
+    descuento por volumen). Recibe los productos ya consultados en el catálogo.
+    Ejemplo: [{"precio_lista": 3250.0, "cantidad": 200}] -> 650000.0
+    """
+    neto = 0.0
+    for producto in productos:
+        neto += producto["precio_lista"] * producto["cantidad"]
+    return neto
+
+
+def descuento_por_volumen(neto: float) -> int:
+    """Porcentaje de descuento por volumen según la escala del art. 4.
+
+    Ejemplo: 1_200_000 -> 5 ; 800_000 -> 0
+    """
+    for desde, porcentaje in ESCALA_VOLUMEN:
+        if neto >= desde:
+            return porcentaje
+    return 0
+
+
+def elegir_accion(acciones: list[str]) -> str:
+    """De las salidas que dispararon las reglas, devuelve la peor; si no hay ninguna, confirmar.
+
+    Ejemplo: ["humano", "derivar", "humano"] -> "derivar"
+    """
+    for accion in PRIORIDAD_ACCIONES:
+        if accion in acciones:
+            return accion
+    return "confirmar"
+
+
+def completar_faltantes(pedido: Pedido, cliente: dict, credito: dict) -> dict:
+    """Completa lo que el mensaje no dijo con los datos habituales del cliente.
+
+    - destino: la localidad del cliente.
+    - forma de pago: con plazo acordado (dias_plazo > 0), cuenta corriente; si no, contado
+      contra entrega.
+    - plazo (si paga en cuenta corriente): el plazo acordado.
+    Lo que el mensaje sí dijo no se toca. Cada dato completado deja una línea de log, para
+    distinguir lo que pidió el cliente de lo que se supuso.
+
+    Ejemplo (MSG-012: destino dicho, pago no dicho, dias_plazo 30):
+        {"destino": "Santa Rosa", "forma_pago": "cuenta_corriente", "plazo_dias": 30,
+         "completados": ["forma_pago", "plazo_dias"], "log": [...dos líneas...]}
+    """
+    completados = []
+    log = []
+
+    destino = pedido["destino"]
+    if destino is None:
+        destino = cliente["localidad"]
+        completados.append("destino")
+        log.append(f"validar_pedido: destino completado con la localidad del cliente ({destino})")
+
+    forma_pago = pedido["forma_pago"]
+    plazo_dias = pedido["plazo_dias"]
+    if forma_pago is None:
+        # El plazo acordado dice cómo compra habitualmente: con plazo, a cuenta corriente.
+        if credito["dias_plazo"] > 0:
+            forma_pago = "cuenta_corriente"
+        else:
+            forma_pago = "contado_contra_entrega"
+        completados.append("forma_pago")
+        log.append(f"validar_pedido: forma de pago completada con la habitual ({forma_pago})")
+    if forma_pago == "cuenta_corriente" and plazo_dias is None:
+        plazo_dias = credito["dias_plazo"]
+        completados.append("plazo_dias")
+        log.append(f"validar_pedido: plazo completado con el habitual ({plazo_dias} días)")
+
+    return {
+        "destino": destino,
+        "forma_pago": forma_pago,
+        "plazo_dias": plazo_dias,
+        "completados": completados,
+        "log": log,
+    }
+
+
+def validar_pedido(estado: EstadoMesa) -> dict:
+    """Aplica las reglas comerciales al pedido y decide: confirmar, humano, rechazar o derivar.
+
+    Sin LLM: sólo datos estructurados (pedido, cliente, catálogo, crédito) y reglas por código.
+    Evalúa TODAS las reglas y junta las alertas; la salida es la peor de las que dispararon.
+    Antes completa lo que el mensaje no dijo (destino, forma de pago, plazo) con los datos
+    habituales del cliente, y lo deja anotado en el log.
+    """
+    pedido = estado["pedido"]
+    cliente = estado["cliente"]
+    log = []
+
+    # Cada regla que falla agrega su salida y un texto. Al final se elige la peor salida.
+    acciones = []
+    alertas = []
+
+    # --- Regla 1: la extracción falló. No hay pedido que evaluar. ---
+    if not pedido["extraido"]:
+        decision = {
+            "accion": "derivar",
+            "motivo": f"no se pudo extraer el pedido: {pedido['motivo']}",
+            "alertas": [],
+            "escenario": None,
+        }
+        return {"decision": decision, "log": ["validar_pedido: derivar (pedido no extraído)"]}
+
+    # --- Datos de las tools: crédito del cliente y cada producto del catálogo. ---
+    credito = verificar_credito.invoke({"cuit": cliente["cuit"]})
+    if not credito["encontrado"]:
+        # cargar_cliente ya encontró a este cliente: si ahora no está, es un bug, no negocio.
+        raise ValueError(f"CUIT {cliente['cuit']} no está en clientes al validar el pedido")
+
+    productos_encontrados = []  # los del catálogo, con la cantidad pedida
+    for item in pedido["productos"]:
+        producto = consultar_producto.invoke({"sku": item["sku"]})
+
+        # Regla 2: el SKU no existe en el catálogo.
+        if not producto["encontrado"]:
+            acciones.append("derivar")
+            alertas.append(f"SKU {item['sku']} no existe en el catálogo")
+            continue  # sin precio ni stock no hay nada más que revisar de este producto
+
+        # Regla 3: no hay stock suficiente (art. 9: nunca se confirma stock que no existe).
+        if item["cantidad"] > producto["stock"]:
+            acciones.append("derivar")
+            alertas.append(
+                f"stock insuficiente de {producto['sku']}: pide {item['cantidad']}, hay {producto['stock']}"
+            )
+
+        productos_encontrados.append({**producto, "cantidad": item["cantidad"]})
+
+    # --- Completar lo que el mensaje no dijo, con los datos habituales del cliente. ---
+    completo = completar_faltantes(pedido, cliente, credito)
+    destino = completo["destino"]
+    forma_pago = completo["forma_pago"]
+    plazo_dias = completo["plazo_dias"]
+    completados = completo["completados"]
+    log.extend(completo["log"])  # extend: agrega cada línea de la lista, no la lista entera
+
+    en_cuenta_corriente = forma_pago == "cuenta_corriente"
+
+    # --- Cálculos ---
+    neto = calcular_neto(productos_encontrados)
+    volumen = descuento_por_volumen(neto)
+    descuento_pedido = pedido["descuento_pedido"]
+    descuento_total = credito["descuento_habitual"] + volumen
+    if descuento_pedido is not None:
+        # Lectura acordada: lo que pide el cliente se suma al habitual y al de volumen.
+        descuento_total += descuento_pedido
+
+    # El tope es más bajo si hay herramienta eléctrica de ciertas marcas (art. 5).
+    tope = TOPE_DESCUENTO
+    for producto in productos_encontrados:
+        if producto["rubro"] == RUBRO_TOPE_REDUCIDO and producto["marca"] in MARCAS_TOPE_REDUCIDO:
+            tope = TOPE_DESCUENTO_MARCAS
+
+    # --- Regla 4: pedido mínimo según categoría (art. 3: no se rechaza, queda en espera). ---
+    if cliente["categoria"] == "C" or cliente["condicion_iva"] == "Monotributo":
+        minimo = PEDIDO_MINIMO_C
+    else:
+        minimo = PEDIDO_MINIMO_AB
+    if neto < minimo:
+        acciones.append("derivar")
+        alertas.append(f"neto ${neto:,.0f} por debajo del pedido mínimo ${minimo:,.0f}")
+
+    # --- Reglas 5 y 6: mora (art. 7). ---
+    mora = credito["mora_dias"]
+    if mora > MORA_MAXIMA and en_cuenta_corriente:
+        acciones.append("rechazar")
+        alertas.append(f"mora de {mora} días: no se toman pedidos en cuenta corriente, sin excepción")
+    elif MORA_GERENCIA <= mora <= MORA_MAXIMA:
+        acciones.append("humano")
+        alertas.append(f"mora de {mora} días: todo pedido requiere autorización de Gerencia")
+
+    # --- Regla 7: crédito (art. 7). Sólo si usa crédito, es decir, cuenta corriente. ---
+    if en_cuenta_corriente and credito["saldo_actual"] + neto > credito["limite_credito"]:
+        acciones.append("humano")
+        alertas.append(
+            f"supera el límite de crédito: neto ${neto:,.0f}, disponible ${credito['disponible']:,.0f}"
+        )
+
+    # --- Regla 8: plazo (art. 6). Cuenta corriente sin plazo acordado, o más días que el acordado. ---
+    if en_cuenta_corriente and credito["dias_plazo"] == 0:
+        acciones.append("humano")
+        alertas.append("pide cuenta corriente y no tiene plazo acordado")
+    elif en_cuenta_corriente and plazo_dias > credito["dias_plazo"]:
+        acciones.append("humano")
+        alertas.append(f"pide {plazo_dias} días de plazo y tiene acordados {credito['dias_plazo']}")
+
+    # --- Regla 9: descuento pedido por encima del tope (art. 5). ---
+    # Sin pedido de descuento no hace falta Gerencia: Mesa aplica hasta el tope sin consultar.
+    if descuento_pedido is not None and descuento_total > tope:
+        acciones.append("humano")
+        alertas.append(f"descuento total {descuento_total:g}% supera el tope de {tope}%")
+
+    # --- Decisión: la peor salida; el motivo es la primera alerta de esa salida. ---
+    accion = elegir_accion(acciones)
+    motivo = None
+    for numero in range(len(acciones)):
+        if acciones[numero] == accion:
+            # Setea motivo de la peor accion posible
+            motivo = alertas[numero]
+            break
+
+    decision = {
+        "accion": accion,
+        "motivo": motivo,
+        "alertas": alertas,
+        # El escenario con que se decidió: Gerencia ve los mismos números (decisión del 3.1).
+        "escenario": {
+            "neto": neto,
+            "descuento_total": descuento_total,
+            "tope_descuento": tope,
+            "credito": {
+                "limite_credito": credito["limite_credito"],
+                "saldo_actual": credito["saldo_actual"],
+                "disponible": credito["disponible"],
+                "mora_dias": credito["mora_dias"],
+                "estado": credito["estado"],
+            },
+            "forma_pago": forma_pago,
+            "plazo_dias": plazo_dias,
+            "destino": destino,
+            "completados": completados,
+        },
+    }
+
+    log.append(f"validar_pedido: {accion} ({len(alertas)} alerta(s))")
+    return {"decision": decision, "log": log}
