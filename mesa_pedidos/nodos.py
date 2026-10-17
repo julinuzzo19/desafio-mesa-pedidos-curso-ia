@@ -298,8 +298,8 @@ PRIORIDAD_ACCIONES = ["rechazar", "derivar", "humano"]
 def calcular_neto(productos: list[dict]) -> float:
     """Neto del pedido: precio de lista x cantidad, sin IVA y antes de descuentos.
 
-    Es la lectura de "monto neto" acordada en el Paso 2 (la que usa el art. 4 para elegir el
-    descuento por volumen). Recibe los productos ya consultados en el catálogo.
+    Es el monto con que el art. 4 elige el descuento por volumen; el art. 7 lo usa también
+    para el crédito. Recibe los productos ya consultados en el catálogo.
     Ejemplo: [{"precio_lista": 3250.0, "cantidad": 200}] -> 650000.0
     """
     neto = 0.0
@@ -444,7 +444,7 @@ def validar_pedido(estado: EstadoMesa) -> dict:
     descuento_pedido = pedido["descuento_pedido"]
     descuento_total = credito["descuento_habitual"] + volumen
     if descuento_pedido is not None:
-        # Lectura acordada: lo que pide el cliente se suma al habitual y al de volumen.
+        # Lo que pide el cliente se suma al habitual y al de volumen.
         descuento_total += descuento_pedido
 
     # El tope es más bajo si hay herramienta eléctrica de ciertas marcas (art. 5).
@@ -505,7 +505,7 @@ def validar_pedido(estado: EstadoMesa) -> dict:
         "accion": accion,
         "motivo": motivo,
         "alertas": alertas,
-        # El escenario con que se decidió: Gerencia ve los mismos números (decisión del 3.1).
+        # El escenario con que se decidió: Gerencia ve los mismos números que produjeron las alertas.
         "escenario": {
             "neto": neto,
             "descuento_total": descuento_total,

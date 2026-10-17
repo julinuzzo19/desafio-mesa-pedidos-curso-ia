@@ -83,7 +83,11 @@ def construir_grafo(checkpointer=None):
 
 
 def estado_inicial(mensaje: dict) -> EstadoMesa:
-    """El estado con que arranca un mensaje: todo en None salvo el mensaje (contrato del 3.1)."""
+    """El estado con que arranca un mensaje: todo en None salvo el mensaje.
+
+    Cada campo tiene que existir desde el principio: quien lo lea antes de que su nodo corra
+    encuentra None (no corrió) en vez de un KeyError.
+    """
     return {
         "mensaje": mensaje,
         "cliente": None,

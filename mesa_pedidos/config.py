@@ -2,7 +2,7 @@
 config.py — Rutas y parámetros del sistema, en un solo lugar.
 
 Los valores sensibles o que cambian por máquina (API key, modelo, dispositivo) salen del .env.
-Los parámetros de diseño (tamaño de chunk, k) están acá, con el porqué en la BITACORA.
+Los parámetros de diseño (tamaño de chunk, k) están acá.
 """
 
 import os
@@ -36,7 +36,7 @@ CARPETA_INDICE = RAIZ / "artifacts" / "indice_faiss" / _nombre_indice  # no se v
 # uno frenado en aprobacion_humana. No se versiona: es el estado de una corrida.
 RUTA_CHECKPOINTS = RAIZ / "artifacts" / "checkpoints.sqlite"
 
-# --- RAG (Paso 1: punto de partida, se ajusta con pruebas propias, nunca con el golden set) ---
+# --- RAG ---
 TAMANO_CHUNK = 1000
 SOLAPAMIENTO_CHUNK = 150  # 15% del chunk
 TOP_K = 5

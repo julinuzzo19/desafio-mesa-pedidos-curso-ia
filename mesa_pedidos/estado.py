@@ -96,7 +96,7 @@ class EstadoMesa(TypedDict):
 
     # Lo escribe validar_pedido: acción + motivo + alertas + el escenario con que decidió
     # (crédito leído, neto). Van juntos para que Gerencia vea los mismos números que
-    # produjeron la decisión. Su forma se define en ese sub-paso.
+    # produjeron la decisión.
     decision: dict | None
 
     # Lo escribe aprobacion_humana con la respuesta de Gerencia. None si el pedido no pasó
