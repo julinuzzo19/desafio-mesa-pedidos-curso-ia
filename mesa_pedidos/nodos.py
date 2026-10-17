@@ -525,3 +525,65 @@ def validar_pedido(estado: EstadoMesa) -> dict:
 
     log.append(f"validar_pedido: {accion} ({len(alertas)} alerta(s))")
     return {"decision": decision, "log": log}
+
+
+# =============================================================================
+# Hojas: donde termina cada mensaje
+# =============================================================================
+# El sistema es de solo lectura: ninguna hoja modifica stock ni saldo. Cada una deja en el
+# log qué pasó y por qué, para que una persona pueda actuar sin abrir nada más.
+
+def derivar_humano(estado: EstadoMesa) -> dict:
+    """Deja el mensaje para que lo tome una persona, con el motivo y todas las alertas.
+
+    Le llegan mensajes de dos lugares, y el motivo está en un campo distinto según de dónde:
+      - desde validar_pedido: en decision (con todas las alertas, no sólo la principal).
+      - desde clasificar: decision está en None (validar_pedido no corrió); el motivo está en
+        clasificacion (sólo si la salida fue inválida; si no, fue clasificado como derivar).
+    """
+    id_mensaje = estado["mensaje"]["id"]
+    decision = estado["decision"]
+
+    if decision is None:
+        motivo = estado["clasificacion"]["motivo"]
+        if motivo is None:
+            motivo = "clasificado como derivar"
+        linea = f"derivar_humano: {id_mensaje} desde clasificar — {motivo}"
+    else:
+        # El motivo es una de las alertas: se muestran aparte las demás, para no repetirlo.
+        otras = []
+        for alerta in decision["alertas"]:
+            if alerta != decision["motivo"]:
+                otras.append(alerta)
+        linea = f"derivar_humano: {id_mensaje} desde validar_pedido — {decision['motivo']}"
+        if otras:
+            linea += f"; además: {'; '.join(otras)}"
+
+    return {"log": [linea]}
+
+
+def rechazar_pedido(estado: EstadoMesa) -> dict:
+    """Registra el rechazo del pedido con su motivo."""
+    id_mensaje = estado["mensaje"]["id"]
+    motivo = estado["decision"]["motivo"]
+    return {"log": [f"rechazar_pedido: {id_mensaje} — {motivo}"]}
+
+
+def confirmar_pedido(estado: EstadoMesa) -> dict:
+    """Registra el pedido confirmado: qué se confirmó y con qué condiciones.
+
+    No descuenta stock ni suma saldo (sistema de solo lectura): el resultado queda en el log.
+    """
+    id_mensaje = estado["mensaje"]["id"]
+    escenario = estado["decision"]["escenario"]
+    cantidad_productos = len(estado["pedido"]["productos"])
+
+    pago = escenario["forma_pago"]
+    if escenario["plazo_dias"] is not None:
+        pago = f"{pago} a {escenario['plazo_dias']} días"
+
+    linea = (
+        f"confirmar_pedido: {id_mensaje} — {cantidad_productos} producto(s), "
+        f"neto ${escenario['neto']:,.0f}, {pago}, destino {escenario['destino']}"
+    )
+    return {"log": [linea]}
