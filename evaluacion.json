@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-10-21T00:52:37",
+  "fecha": "2026-10-21T00:56:13",
   "modelo": "groq/openai/gpt-oss-120b",
   "embeddings": "huggingface/BAAI/bge-m3",
   "chunk": {
@@ -9,7 +9,7 @@
   },
   "resumen": {
     "rama_correcta": "20/20",
-    "dato_clave": "7/8"
+    "dato_clave": "8/8"
   },
   "casos": [
     {
@@ -22,15 +22,13 @@
         "responder_consulta: alcanza sí, 2 cita(s)"
       ],
       "ruta_ok": true,
-      "dato_clave": false,
-      "faltan": [
-        "5%"
-      ],
+      "dato_clave": true,
+      "faltan": [],
       "documento_citado": true,
-      "respuesta": "Según la tabla de descuentos por volumen (ART. 4), un pedido con monto neto de $1.200.000 está en la franja de $1.000.000 a $2.999.999, por lo que le corresponde un 5 % de descuento por volumen.\n\nEn cuanto al flete, su localidad (Villa María, Córdoba) corresponde a la zona 2 (interior de Córdoba). El costo de flete para esa zona es $68.000 por envío (ver tabla de zonas). La bonificación de flete al 100 % solo se aplica cuando el monto neto supera los $1.500.000 en zonas 1‑3 (ver regla de flete bonificado). Como su pedido es de $1.200.000, no alcanza el umbral y, por lo tanto, el flete no se bonifica; deberá abonar los $68.000 correspondientes.",
+      "respuesta": "Le corresponde un descuento por volumen del 5% (artículo 4, fragmento [2]), ya que el monto neto del pedido está entre $1.000.000 y $2.999.999. Su zona de entrega es la zona 2 (Villa María, interior de Córdoba), cuyo flete estándar es $68.000 por envío (fragmento [3]). Como el monto neto de $1.200.000 está por debajo del umbral de $1.500.000, el flete no se bonifica (fragmento [1]); por lo tanto deberá abonar el costo del flete correspondiente.",
       "citas": [
-        "logistica_fletes_2026.pdf",
-        "condiciones_comerciales_2026.pdf"
+        "condiciones_comerciales_2026.pdf",
+        "logistica_fletes_2026.pdf"
       ]
     },
     {
@@ -46,7 +44,7 @@
       "dato_clave": true,
       "faltan": [],
       "documento_citado": true,
-      "respuesta": "El envío a Neuquén (zona 5) tiene un costo de flete de $175.000 por envío y el plazo de entrega es de 8 a 12 días hábiles.",
+      "respuesta": "Para Neuquén (zona 5) el flete es de $175.000 por envío y el plazo de entrega es de 8 a 12 días hábiles.",
       "citas": [
         "logistica_fletes_2026.pdf"
       ]
@@ -82,7 +80,7 @@
       "dato_clave": true,
       "faltan": [],
       "documento_citado": true,
-      "respuesta": "El atornillador de impacto SKU HE-4330 se vende sin batería ni cargador. La batería compatible es el SKU HE-4335.",
+      "respuesta": "No, el atornillador de impacto HE-4330 se vende sin batería ni cargador. La batería compatible es el SKU HE-4335.",
       "citas": [
         "fichas_tecnicas_2026.pdf"
       ]
@@ -100,7 +98,7 @@
       "dato_clave": true,
       "faltan": [],
       "documento_citado": true,
-      "respuesta": "El presupuesto emitido el 10 de septiembre ya no es válido, ya que según la política, un presupuesto mantiene el precio solo por 5 días hábiles y luego caduca automáticamente. Han transcurrido más de 5 días hábiles hasta la fecha del mensaje (20 de septiembre).",
+      "respuesta": "Según la política (ART. 2), un presupuesto mantiene el precio por 5 días hábiles y luego caduca automáticamente. El presupuesto que le enviamos el 10 de septiembre de 2026 habría expirado al cumplirse los 5 días hábiles (jueves 10, viernes 11, lunes 14, martes 15 y miércoles 16 de septiembre). Por lo tanto, a fecha de su consulta (20 de septiembre de 2026) el presupuesto ya no es válido.",
       "citas": [
         "condiciones_comerciales_2026.pdf"
       ]
@@ -118,7 +116,7 @@
       "dato_clave": true,
       "faltan": [],
       "documento_citado": true,
-      "respuesta": "La garantía de las amoladoras (herramienta eléctrica) es de 12 meses contados desde la fecha de factura. Cubre defectos de fabricación y se gestiona a través del service oficial de la marca; Ferretería Industrial Andina actúa como gestor del trámite. No cubre uso indebido, sobrecarga, falta de mantenimiento, conexión a tensión incorrecta, intervención de terceros no autorizados ni el desgaste normal de piezas consumibles. Para iniciar el trámite debe presentar la factura y el número de remito, y contactar al service oficial; Ferretería gestionará la reparación.",
+      "respuesta": "La garantía de la amoladora angular (herramienta eléctrica) es de 12 meses contados desde la fecha de factura. La gestión de la garantía se realiza a través del service oficial de la marca y Ferretería Industrial Andina actúa como gestor del trámite. La garantía cubre defectos de fabricación del producto; no cubre daños por uso indebido, sobrecarga, falta de mantenimiento, conexión a tensión incorrecta, intervención de terceros no autorizados o desgaste normal de piezas consumibles. Para iniciar el trámite debe presentar la factura (para acreditar los 8 meses transcurridos) y contactar al service oficial; Ferretería Industrial Andina le asistirá en la gestión.",
       "citas": [
         "politica_devoluciones_2026.pdf",
         "fichas_tecnicas_2026.pdf"
@@ -137,7 +135,7 @@
       "dato_clave": true,
       "faltan": [],
       "documento_citado": true,
-      "respuesta": "Según la política, el límite de 24 unidades por envío solo se aplica a las zonas 4 y 5. Santa Rosa está en La Pampa, que pertenece a la zona 3, por lo que no hay un límite establecido para aerosoles inflamables en su zona; pueden enviarse la cantidad que necesite, salvo que se apliquen otras restricciones no contempladas en los fragmentos.",
+      "respuesta": "El límite de 24 unidades por envío solo se aplica a los aerosoles y químicos inflamables cuando el destino está en las zonas 4 y 5. Santa Rosa, en La Pampa, pertenece a la zona 3 según la tabla de zonas de entrega. Por lo tanto, no hay un límite de 24 unidades para su caso; pueden enviarse más unidades (sujetas a otras condiciones que no se especifican en los fragmentos proporcionados).",
       "citas": [
         "logistica_fletes_2026.pdf"
       ]

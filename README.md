@@ -150,13 +150,32 @@ python -m scripts.probar_clasificar [MSG-004 ...]               # sólo la clasi
 
 La primera consulta construye el índice y las siguientes lo reutilizan.
 
-> Pendiente: `evaluar.py` (los 20 casos contra el golden set, con salida en `evaluacion.json`).
+### Medición: `evaluar.py`
+
+```
+python evaluar.py
+```
+
+Corre los 20 mensajes de cero contra `consigna/golden_set.json` y reporta dos números:
+
+- **Rama correcta:** cuántos mensajes terminan en el nodo que espera el golden set. Un pedido
+  que se frena cuenta como `aprobacion_humana`; no se retoma.
+- **Dato clave:** en cuántas de las 8 consultas aparecen todos los datos esperados
+  (`debe_contener`). La comparación ignora mayúsculas, tildes, espacios y `$`.
+
+Imprime una línea por caso (✔/✘, esperado y obtenido) y guarda el detalle en `evaluacion.json`:
+modelo, embeddings, parámetros del RAG, los dos números, la respuesta y las citas de cada
+consulta. Usa sus propios checkpoints (`artifacts/checkpoints_eval.sqlite`), así no toca lo que
+quedó en `correr.py`. Tarda varios minutos. Si se cancela, `evaluacion.json` queda como estaba.
+
+**Último resultado:** 20/20 rama correcta · 8/8 dato clave.
 
 ## 5. Estructura
 
 ```
 mesa_pedidos/   config, modelos, rag, datos, tools, estado, nodos, grafo
 correr.py       menú para procesar mensajes y aprobar/rechazar
+evaluar.py      medición contra el golden set → evaluacion.json
 scripts/        pruebas manuales (probar_rag, probar_clasificar, probar_grafo)
 data/           políticas (PDF), catálogo, clientes y bandeja
 consigna/       consigna y golden set

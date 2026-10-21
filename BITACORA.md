@@ -5,9 +5,9 @@ Cada decisión lleva su porqué y, cuando las hubo, las alternativas descartadas
 
 ## Estado actual
 
-- **Hecho:** RAG, tools, nodos, grafo, `interrupt()` con checkpointer.
-- **Sigue:** evaluación (`evaluar.py` contra `golden_set.json`) y `correr.py` (validar CUIT y
-  correr la bandeja).
+- **Hecho:** RAG, tools, nodos, grafo, `interrupt()` con checkpointer, `correr.py` (menú) y
+  `evaluar.py`. Medición: **20/20 rama correcta · 8/8 dato clave** (ver sección 8).
+- **Sigue:** completar el informe (`INFORME.md` → PDF de dos carillas).
 - **Dudas abiertas:**
   - Una consulta de precio (está en `catalogo.csv`, no en los PDF): ¿`derivar` o `consulta` con
     "no alcanza"? Ninguna consulta de la bandeja lo pide.
@@ -255,7 +255,38 @@ estaba en el primer chunk y la respuesta no la mencionó: problema de generació
 - CUIT desconocido se valida en `correr.py` antes del grafo. Costo aceptado: ese rechazo no
   queda en el estado ni en el checkpoint. Todos los CUIT de la bandeja existen.
 
-## 8. Conceptos aplicados
+## 8. Ejecución y medición
+
+**`correr.py` (menú):** lista los 20 mensajes con su situación leída de los checkpoints (sin
+correr / frenado / terminado). Valida el CUIT antes de invocar el grafo. Si un pedido se frena,
+Gerencia aprueba, rechaza o lo deja pendiente para retomarlo después (aunque se cierre la
+terminal). Un mensaje terminado no se vuelve a correr: el reducer duplicaría el log.
+
+**`evaluar.py`:**
+| Decisión | Por qué |
+|---|---|
+| Checkpoints propios (`checkpoints_eval.sqlite`), borrados al arrancar; threads `eval-MSG-0XX` | Cada medición parte de cero y no pisa lo de `correr.py` |
+| Un pedido frenado cuenta como `aprobacion_humana`; no se retoma | El golden set usa esa rama como resultado esperado; retomar exigiría inventar la decisión de Gerencia |
+| Ruta = nodo pendiente si está frenado; si no, el nodo de la última línea del log | Cada nodo escribe su log empezando por su nombre |
+| Dato clave: tienen que estar **todos** los `debe_contener` | Una respuesta a medias no le sirve al cliente |
+| Comparación normalizada: minúsculas, sin tildes, sin `$` y sin **ningún** espacio en blanco | Mide si el dato está, no cómo lo formateó el modelo. No interpreta números (`1,5 millones` ≠ `1.500.000`): eso volvería la métrica laxa |
+| Si un mensaje lanza una excepción, se registra y la evaluación sigue | Un fallo de red no corta las otras 19 mediciones |
+| Extra: si la respuesta cita el `documento` esperado | Se informa aparte; no entra en los dos números |
+| `evaluacion.json` se escribe al final y se versiona | Es entregable; una corrida cancelada no deja un archivo a medias |
+
+**Resultados y qué cambió con la medición:**
+- **MSG-016:** el golden set espera `aprobacion_humana`; el sistema lo derivaba por falta de
+  stock. Se cambió la regla 3 a `humano` (ver `validar_pedido`).
+- **MSG-001, dato clave:** la primera corrida dio 7/8. La respuesta era correcta, pero el modelo
+  escribió `5 %` (espacio fino, se ve igual que un espacio) y la normalización sólo sacaba el
+  espacio común. Era un error del **evaluador**, no del sistema; se corrigió para sacar cualquier
+  espacio. El PDF dice `5%`: el espacio lo agrega la generación.
+- Resultado: 20/20 rama correcta, 8/8 dato clave, las 8 consultas citan el documento esperado.
+- Una sola corrida: el LLM no es del todo determinista, otra corrida podría variar.
+
+---
+
+## 9. Conceptos aplicados
 
 Cada concepto con el razonamiento propio que lo sostiene, en limpio.
 
@@ -298,6 +329,15 @@ Cada concepto con el razonamiento propio que lo sostiene, en limpio.
   checkpointear e interrumpir.
 - Sin el campo en el estado inicial, leerlo da `KeyError`: por eso todo arranca en `None`.
 
+**Evaluación**
+- Se mide con un set fijo y una métrica definida antes de mirar los resultados; la salida
+  queda guardada para comparar corridas.
+- El evaluador también es código y puede fallar: ante un número malo, primero ver si el dato
+  estaba (MSG-001). Corregir la métrica es legítimo sólo si el dato estaba; si no, es trampa.
+- Ante un fallo real, ubicar la pieza (clasificación, extracción, regla, recuperación o
+  generación) antes de corregir. No ajustar el prompt caso por caso hasta 20/20: sobreajusta al
+  golden set.
+
 **Interrupt y checkpointer (clase 7)**
 
 - El checkpointer guarda el estado después de cada nodo, bajo un `thread_id`. Al retomar sólo
@@ -313,7 +353,7 @@ Cada concepto con el razonamiento propio que lo sostiene, en limpio.
 
 ---
 
-## 9. Fuera de alcance
+## 10. Fuera de alcance
 
 | Qué                                                               | Por qué                                                                |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
