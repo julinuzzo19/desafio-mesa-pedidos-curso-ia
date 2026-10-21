@@ -54,10 +54,70 @@ Elegí una de estas combinaciones y completá sólo la clave del proveedor que u
 
 ## 4. Probar el grafo
 
-Todos los comandos se corren desde la raíz del repo, con el entorno activado.
+Todos los comandos se corren desde la raíz del repo, con el entorno activado:
 
-**El grafo completo.** Los checkpoints se guardan en `artifacts/checkpoints.sqlite`, con un
-thread por mensaje:
+```
+.venv\Scripts\Activate.ps1        # PowerShell (cmd: .venv\Scripts\activate · Linux/Mac: source .venv/bin/activate)
+```
+
+Si PowerShell no deja correr el script de activación:
+`Set-ExecutionPolicy -Scope Process RemoteSigned` y repetir. Sin el entorno activado aparece
+`No module named 'langchain'`.
+
+### Menú interactivo: `correr.py`
+
+La forma más simple de ver el sistema funcionando:
+
+```
+python correr.py
+```
+
+```
+=== Mesa de Pedidos ===
+  1. MSG-001  Hola! Consulta: si les compro por 1.200.000 mas IVA, que des...  [terminado]
+  ...
+ 13. MSG-013  Necesitamos con urgencia: 3 amoladoras HE-4180, 1 compresor ...  [FRENADO]
+  ...
+  b. borrar todos los checkpoints   q. salir
+
+Elegí un número:
+```
+
+| Opción | Qué hace |
+|---|---|
+| `1` a `20` | Procesa ese mensaje: valida el CUIT (si no está en `clientes.csv`, lo rechaza sin arrancar el grafo), corre el grafo y muestra el log, la respuesta con sus citas y, si se frena, lo que ve Gerencia |
+| `s` / `n` / Enter | Cuando un pedido se frena: Gerencia aprueba (→ `confirmar_pedido`), rechaza (→ `rechazar_pedido`) o lo deja pendiente |
+| `b` | Borra todos los checkpoints para correr todo de cero |
+| `q` | Salir |
+
+La situación de cada mensaje sale de los checkpoints (`artifacts/checkpoints.sqlite`, un thread
+por mensaje): vacío = sin correr, `[FRENADO]` = esperando a Gerencia, `[terminado]` = ya
+procesado. Un mensaje terminado no se vuelve a correr (su log se duplicaría): se muestra lo
+guardado. Para correrlo de nuevo, `b`.
+
+**Probar que se puede retomar después de cerrar la terminal:**
+
+1. `python correr.py` → elegir `14` (MSG-014 supera el crédito y se frena).
+2. Enter (dejar pendiente) → `q`.
+3. Cerrar la terminal, abrir otra, activar el entorno y correr `python correr.py`:
+   MSG-014 aparece `[FRENADO]`.
+4. Elegir `14` → `s`. El grafo sigue desde `aprobacion_humana` (no vuelve a clasificar ni a
+   llamar al LLM) y termina en `confirmar_pedido`.
+
+**Un mensaje de cada camino:**
+
+| Mensaje | Camino |
+|---|---|
+| MSG-002 | consulta → `responder_consulta` |
+| MSG-009 | pedido → `confirmar_pedido` |
+| MSG-013, 014, 015 | pedido → `aprobacion_humana` (se frena) |
+| MSG-016 | pedido → `derivar_humano` (sin stock) |
+| MSG-017 | pedido → `rechazar_pedido` (mora de 95 días en cuenta corriente) |
+| MSG-019 | derivar desde `clasificar` (proveedor) |
+
+### Por línea de comandos: `scripts/`
+
+**El grafo, sin menú** (comparte los checkpoints con `correr.py`):
 
 ```
 python -m scripts.probar_grafo                      # los 20 mensajes de la bandeja
@@ -90,13 +150,13 @@ python -m scripts.probar_clasificar [MSG-004 ...]               # sólo la clasi
 
 La primera consulta construye el índice y las siguientes lo reutilizan.
 
-> Pendiente: `correr.py` (procesar un mensaje y manejar la aprobación) y `evaluar.py`
-> (los 20 casos contra el golden set, con salida en `evaluacion.json`).
+> Pendiente: `evaluar.py` (los 20 casos contra el golden set, con salida en `evaluacion.json`).
 
 ## 5. Estructura
 
 ```
 mesa_pedidos/   config, modelos, rag, datos, tools, estado, nodos, grafo
+correr.py       menú para procesar mensajes y aprobar/rechazar
 scripts/        pruebas manuales (probar_rag, probar_clasificar, probar_grafo)
 data/           políticas (PDF), catálogo, clientes y bandeja
 consigna/       consigna y golden set
