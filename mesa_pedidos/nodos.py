@@ -648,14 +648,18 @@ def confirmar_pedido(estado: EstadoMesa) -> dict:
     """
     id_mensaje = estado["mensaje"]["id"]
     escenario = estado["decision"]["escenario"]
-    cantidad_productos = len(estado["pedido"]["productos"])
+    # Cada producto como "cantidad x SKU", para que quien lea el log sepa qué se confirmó.
+    renglones = []
+    for producto in estado["pedido"]["productos"]:
+        renglones.append(f"{producto['cantidad']} x {producto['sku']}")
+    productos = ", ".join(renglones)
 
     pago = escenario["forma_pago"]
     if escenario["plazo_dias"] is not None:
         pago = f"{pago} a {escenario['plazo_dias']} días"
 
     linea = (
-        f"confirmar_pedido: {id_mensaje} — {cantidad_productos} producto(s), "
+        f"confirmar_pedido: {id_mensaje} — {productos}; "
         f"neto ${escenario['neto']:,.0f}, {pago}, destino {escenario['destino']}"
     )
     # Si pasó por Gerencia, se deja dicho quién lo autorizó y por qué estaba frenado.
