@@ -23,7 +23,7 @@ Cada decisión lleva su porqué y, cuando las hubo, las alternativas descartadas
 | Término                                | Definición                                                                                                                                           | Fuente / argumento                                                                                                                                                 |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Monto neto                              | Precio de lista × cantidad, sin IVA, antes de descuentos                                                                                             | El art. 4 elige el descuento por volumen con el neto, así que es anterior al descuento; se usa igual en el art. 7 (crédito). El documento no lo define del todo. |
-| Descuento total                         | Habitual + volumen + lo que pide el cliente                                                                                                           | Lectura del art. 5. En MSG-016 ("25% total") no cambia el veredicto (deriva por stock).                                                                            |
+| Descuento total                         | Habitual + volumen + lo que pide el cliente                                                                                                           | Lectura del art. 5. En MSG-016 ("25% total") no cambia el veredicto (va a Gerencia por el descuento, el crédito y el stock).                                                                            |
 | Tope de descuento                       | 20%; 15% si hay herramienta eléctrica Dewalt/Makita/Bosch                                                                                            | Art. 5                                                                                                                                                             |
 | Pedido mínimo                          | 250.000 (A/B); 120.000 (C o monotributo)                                                                                                              | Art. 3: no se rechaza, queda en espera                                                                                                                             |
 | "A 30 días"                            | Cuenta corriente con plazo de 30 días                                                                                                                | Comprar a crédito; los días van en otro campo                                                                                                                    |
@@ -157,7 +157,7 @@ Leer las reglas con el RAG exigiría un LLM y daría veredictos no deterministas
 | - | ------------------------------------------------------------- | -------- | -------------------------------------------- |
 | 1 | `extraido: False`                                           | derivar  | —                                           |
 | 2 | SKU inexistente                                               | derivar  | catálogo                                    |
-| 3 | Stock insuficiente                                            | derivar  | art. 9 (se ofrece parcial/sustitución/baja) |
+| 3 | Stock insuficiente                                            | humano   | art. 9 (Gerencia decide parcial/sustitución/baja) |
 | 4 | Neto < mínimo                                                | derivar  | art. 3 ("no se rechazan")                    |
 | 5 | Mora > 60 y cuenta corriente                                  | rechazar | art. 7 ("sin excepción")                    |
 | 6 | Mora 30-60                                                    | humano   | art. 7                                       |
@@ -165,8 +165,13 @@ Leer las reglas con el RAG exigiría un LLM y daría veredictos no deterministas
 | 8 | Cuenta corriente sin plazo acordado, o plazo > `dias_plazo` | humano   | art. 6                                       |
 | 9 | Pidió descuento y total > tope                               | humano   | art. 5                                       |
 
-- Se evalúan todas y gana la peor: rechazar > derivar > humano > confirmar. `derivar` gana a
-  `humano` porque `humano` puede terminar confirmado y un pedido sin stock nunca se confirma.
+- Se evalúan todas y gana la peor: rechazar > derivar > humano > confirmar. `derivar` queda para
+  lo que no se puede evaluar como pedido (extracción fallida, SKU inexistente, bajo el mínimo).
+- **Cambio en la medición:** el stock insuficiente iba a `derivar` (con prioridad sobre `humano`,
+  porque un pedido sin stock no debía confirmarse). El golden set espera `aprobacion_humana` en
+  MSG-016 (stock + crédito + descuento). Se adoptó esa lectura: la falta de stock es una alerta
+  más para Gerencia, que ya está mirando el pedido y decide la entrega parcial o la sustitución
+  (art. 9). Si aprueba, el log de `confirmar_pedido` lleva la alerta de stock.
 - Regla 9 sólo si el cliente pidió descuento: si no, Mesa aplica hasta el tope sin consultar
   (MSG-010: 23% con tope 15% → confirmar).
 - Antes de las reglas completa destino, forma de pago y plazo, con una línea de log cada uno.

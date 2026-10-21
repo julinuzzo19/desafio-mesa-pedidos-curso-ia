@@ -419,9 +419,10 @@ def validar_pedido(estado: EstadoMesa) -> dict:
             alertas.append(f"SKU {item['sku']} no existe en el catálogo")
             continue  # sin precio ni stock no hay nada más que revisar de este producto
 
-        # Regla 3: no hay stock suficiente (art. 9: nunca se confirma stock que no existe).
+        # Regla 3: no hay stock suficiente. Decide Gerencia (art. 9: entrega parcial,
+        # sustitución o baja), junto con las demás alertas del pedido.
         if item["cantidad"] > producto["stock"]:
-            acciones.append("derivar")
+            acciones.append("humano")
             alertas.append(
                 f"stock insuficiente de {producto['sku']}: pide {item['cantidad']}, hay {producto['stock']}"
             )

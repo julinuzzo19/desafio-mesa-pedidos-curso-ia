@@ -2,11 +2,11 @@
 
 Sistema que procesa los mensajes de clientes de Ferretería Industrial Andina con un grafo de
 LangGraph. Hace cuatro cosas:
+
 - clasifica cada mensaje;
 - responde las consultas con las políticas, citando documento y página;
 - valida los pedidos contra el catálogo y la cuenta corriente;
 - frena para pedir aprobación a Gerencia cuando la decisión no le corresponde.
-
 - Informe: [INFORME.md](INFORME.md) (se entrega en PDF).
 - Definiciones y decisiones: [BITACORA.md](BITACORA.md).
 
@@ -39,11 +39,11 @@ antes de instalar. Ese bloque es el más pesado.
 
 Elegí una de estas combinaciones y completá sólo la clave del proveedor que uses.
 
-| Combinación | Variables |
-|---|---|
-| **Groq + embeddings locales** (por defecto) | `PROVEEDOR_LLM=groq` · `MODELO=openai/gpt-oss-120b` · `PROVEEDOR_EMBEDDINGS=huggingface` · `MODELO_EMBEDDINGS=BAAI/bge-m3` · `GROQ_API_KEY=...` |
-| Groq + embeddings por API | lo anterior, con `PROVEEDOR_EMBEDDINGS=openai` · `MODELO_EMBEDDINGS=text-embedding-3-small` · `OPENAI_API_KEY=...` |
-| Todo OpenAI | `PROVEEDOR_LLM=openai` · `MODELO=gpt-4o-mini` · `PROVEEDOR_EMBEDDINGS=openai` · `MODELO_EMBEDDINGS=text-embedding-3-small` · `OPENAI_API_KEY=...` |
+| Combinación                                      | Variables                                                                                                                                                       |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Groq + embeddings locales** (por defecto) | `PROVEEDOR_LLM=groq` · `MODELO=openai/gpt-oss-120b` · `PROVEEDOR_EMBEDDINGS=huggingface` · `MODELO_EMBEDDINGS=BAAI/bge-m3` · `GROQ_API_KEY=...`   |
+| Groq + embeddings por API                         | lo anterior, con `PROVEEDOR_EMBEDDINGS=openai` · `MODELO_EMBEDDINGS=text-embedding-3-small` · `OPENAI_API_KEY=...`                                      |
+| Todo OpenAI                                       | `PROVEEDOR_LLM=openai` · `MODELO=gpt-4o-mini` · `PROVEEDOR_EMBEDDINGS=openai` · `MODELO_EMBEDDINGS=text-embedding-3-small` · `OPENAI_API_KEY=...` |
 
 - Con embeddings locales, `DISPOSITIVO_EMBEDDINGS=cuda` usa la GPU si la hay. El valor por
   defecto es `cpu`.
@@ -83,12 +83,12 @@ python correr.py
 Elegí un número:
 ```
 
-| Opción | Qué hace |
-|---|---|
-| `1` a `20` | Procesa ese mensaje: valida el CUIT (si no está en `clientes.csv`, lo rechaza sin arrancar el grafo), corre el grafo y muestra el log, la respuesta con sus citas y, si se frena, lo que ve Gerencia |
-| `s` / `n` / Enter | Cuando un pedido se frena: Gerencia aprueba (→ `confirmar_pedido`), rechaza (→ `rechazar_pedido`) o lo deja pendiente |
-| `b` | Borra todos los checkpoints para correr todo de cero |
-| `q` | Salir |
+| Opción               | Qué hace                                                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1` a `20`        | Procesa ese mensaje: valida el CUIT (si no está en `clientes.csv`, lo rechaza sin arrancar el grafo), corre el grafo y muestra el log, la respuesta con sus citas y, si se frena, lo que ve Gerencia |
+| `s` / `n` / Enter | Cuando un pedido se frena: Gerencia aprueba (→ `confirmar_pedido`), rechaza (→ `rechazar_pedido`) o lo deja pendiente                                                                             |
+| `b`                 | Borra todos los checkpoints para correr todo de cero                                                                                                                                                    |
+| `q`                 | Salir                                                                                                                                                                                                   |
 
 La situación de cada mensaje sale de los checkpoints (`artifacts/checkpoints.sqlite`, un thread
 por mensaje): vacío = sin correr, `[FRENADO]` = esperando a Gerencia, `[terminado]` = ya
@@ -106,14 +106,14 @@ guardado. Para correrlo de nuevo, `b`.
 
 **Un mensaje de cada camino:**
 
-| Mensaje | Camino |
-|---|---|
-| MSG-002 | consulta → `responder_consulta` |
-| MSG-009 | pedido → `confirmar_pedido` |
-| MSG-013, 014, 015 | pedido → `aprobacion_humana` (se frena) |
-| MSG-016 | pedido → `derivar_humano` (sin stock) |
-| MSG-017 | pedido → `rechazar_pedido` (mora de 95 días en cuenta corriente) |
-| MSG-019 | derivar desde `clasificar` (proveedor) |
+| Mensaje           | Camino                                                               |
+| ----------------- | -------------------------------------------------------------------- |
+| MSG-002           | consulta → `responder_consulta`                                   |
+| MSG-009           | pedido → `confirmar_pedido`                                       |
+| MSG-013, 014, 015 | pedido → `aprobacion_humana` (se frena)                           |
+| MSG-016           | pedido → `derivar_humano` (sin stock)                             |
+| MSG-017           | pedido → `rechazar_pedido` (mora de 95 días en cuenta corriente) |
+| MSG-019           | derivar desde `clasificar` (proveedor)                             |
 
 ### Por línea de comandos: `scripts/`
 
@@ -179,17 +179,17 @@ graph TD;
 	derivar_humano(derivar_humano)
 	__end__([__end__]):::last
 	__start__ --> cargar_cliente;
-	aprobacion_humana -. &nbsp;True&nbsp; .-> confirmar_pedido;
-	aprobacion_humana -. &nbsp;False&nbsp; .-> rechazar_pedido;
+	aprobacion_humana -.  True  .-> confirmar_pedido;
+	aprobacion_humana -.  False  .-> rechazar_pedido;
 	cargar_cliente --> clasificar;
-	clasificar -. &nbsp;derivar&nbsp; .-> derivar_humano;
-	clasificar -. &nbsp;pedido&nbsp; .-> extraer_pedido;
-	clasificar -. &nbsp;consulta&nbsp; .-> responder_consulta;
+	clasificar -.  derivar  .-> derivar_humano;
+	clasificar -.  pedido  .-> extraer_pedido;
+	clasificar -.  consulta  .-> responder_consulta;
 	extraer_pedido --> validar_pedido;
-	validar_pedido -. &nbsp;humano&nbsp; .-> aprobacion_humana;
-	validar_pedido -. &nbsp;confirmar&nbsp; .-> confirmar_pedido;
-	validar_pedido -. &nbsp;derivar&nbsp; .-> derivar_humano;
-	validar_pedido -. &nbsp;rechazar&nbsp; .-> rechazar_pedido;
+	validar_pedido -.  humano  .-> aprobacion_humana;
+	validar_pedido -.  confirmar  .-> confirmar_pedido;
+	validar_pedido -.  derivar  .-> derivar_humano;
+	validar_pedido -.  rechazar  .-> rechazar_pedido;
 	confirmar_pedido --> __end__;
 	derivar_humano --> __end__;
 	rechazar_pedido --> __end__;

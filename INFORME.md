@@ -96,8 +96,8 @@ graph TD;
 - **Qué nodo lleva LLM:** texto libre → LLM con structured output; datos y reglas → código.
   `validar_pedido` va sin LLM.
 - **Chunking por sección** (1000/150): por qué no alcanzó cortar por tamaño (1000 y 1500).
-- **Qué dispara aprobación:** reglas de mora 30-60, crédito, plazo y descuento pedido sobre el
-  tope; por qué `derivar` le gana a `humano` (un pedido sin stock nunca se confirma).
+- **Qué dispara aprobación:** mora 30-60, crédito, plazo, descuento pedido sobre el tope y stock
+  insuficiente (cambió de `derivar` a `humano` con la medición: MSG-016).
 - **Payload de la aprobación:** todas las alertas y los números con que se decidió.
 - **Interpretaciones de la política:** monto neto, descuento total.
 
