@@ -1,0 +1,323 @@
+{
+  "fecha": "2026-10-21T00:52:37",
+  "modelo": "groq/openai/gpt-oss-120b",
+  "embeddings": "huggingface/BAAI/bge-m3",
+  "chunk": {
+    "tamano": 1000,
+    "solapamiento": 150,
+    "k": 5
+  },
+  "resumen": {
+    "rama_correcta": "20/20",
+    "dato_clave": "7/8"
+  },
+  "casos": [
+    {
+      "id": "MSG-001",
+      "ruta_esperada": "responder_consulta",
+      "ruta_obtenida": "responder_consulta",
+      "log": [
+        "cargar_cliente: Ferreteria El Tornillo Feliz S.R.L. (categoría A)",
+        "clasificar: consulta",
+        "responder_consulta: alcanza sí, 2 cita(s)"
+      ],
+      "ruta_ok": true,
+      "dato_clave": false,
+      "faltan": [
+        "5%"
+      ],
+      "documento_citado": true,
+      "respuesta": "Según la tabla de descuentos por volumen (ART. 4), un pedido con monto neto de $1.200.000 está en la franja de $1.000.000 a $2.999.999, por lo que le corresponde un 5 % de descuento por volumen.\n\nEn cuanto al flete, su localidad (Villa María, Córdoba) corresponde a la zona 2 (interior de Córdoba). El costo de flete para esa zona es $68.000 por envío (ver tabla de zonas). La bonificación de flete al 100 % solo se aplica cuando el monto neto supera los $1.500.000 en zonas 1‑3 (ver regla de flete bonificado). Como su pedido es de $1.200.000, no alcanza el umbral y, por lo tanto, el flete no se bonifica; deberá abonar los $68.000 correspondientes.",
+      "citas": [
+        "logistica_fletes_2026.pdf",
+        "condiciones_comerciales_2026.pdf"
+      ]
+    },
+    {
+      "id": "MSG-002",
+      "ruta_esperada": "responder_consulta",
+      "ruta_obtenida": "responder_consulta",
+      "log": [
+        "cargar_cliente: Talleres Patagonia S.A. (categoría A)",
+        "clasificar: consulta",
+        "responder_consulta: alcanza sí, 1 cita(s)"
+      ],
+      "ruta_ok": true,
+      "dato_clave": true,
+      "faltan": [],
+      "documento_citado": true,
+      "respuesta": "El envío a Neuquén (zona 5) tiene un costo de flete de $175.000 por envío y el plazo de entrega es de 8 a 12 días hábiles.",
+      "citas": [
+        "logistica_fletes_2026.pdf"
+      ]
+    },
+    {
+      "id": "MSG-003",
+      "ruta_esperada": "responder_consulta",
+      "ruta_obtenida": "responder_consulta",
+      "log": [
+        "cargar_cliente: Roberto Gimenez Herramientas (categoría C)",
+        "clasificar: consulta",
+        "responder_consulta: alcanza sí, 1 cita(s)"
+      ],
+      "ruta_ok": true,
+      "dato_clave": true,
+      "faltan": [],
+      "documento_citado": true,
+      "respuesta": "Lo sentimos, la devolución por arrepentimiento no se acepta para zapatos de seguridad, ya que están excluidos por razones de higiene según nuestra política. Por lo tanto no podemos procesar la devolución del talle equivocado.",
+      "citas": [
+        "politica_devoluciones_2026.pdf"
+      ]
+    },
+    {
+      "id": "MSG-004",
+      "ruta_esperada": "responder_consulta",
+      "ruta_obtenida": "responder_consulta",
+      "log": [
+        "cargar_cliente: Metalurgica San Jorge S.A. (categoría A)",
+        "clasificar: consulta",
+        "responder_consulta: alcanza sí, 1 cita(s)"
+      ],
+      "ruta_ok": true,
+      "dato_clave": true,
+      "faltan": [],
+      "documento_citado": true,
+      "respuesta": "El atornillador de impacto SKU HE-4330 se vende sin batería ni cargador. La batería compatible es el SKU HE-4335.",
+      "citas": [
+        "fichas_tecnicas_2026.pdf"
+      ]
+    },
+    {
+      "id": "MSG-005",
+      "ruta_esperada": "responder_consulta",
+      "ruta_obtenida": "responder_consulta",
+      "log": [
+        "cargar_cliente: Distribuidora Cuyo Insumos S.A. (categoría A)",
+        "clasificar: consulta",
+        "responder_consulta: alcanza sí, 1 cita(s)"
+      ],
+      "ruta_ok": true,
+      "dato_clave": true,
+      "faltan": [],
+      "documento_citado": true,
+      "respuesta": "El presupuesto emitido el 10 de septiembre ya no es válido, ya que según la política, un presupuesto mantiene el precio solo por 5 días hábiles y luego caduca automáticamente. Han transcurrido más de 5 días hábiles hasta la fecha del mensaje (20 de septiembre).",
+      "citas": [
+        "condiciones_comerciales_2026.pdf"
+      ]
+    },
+    {
+      "id": "MSG-006",
+      "ruta_esperada": "responder_consulta",
+      "ruta_obtenida": "responder_consulta",
+      "log": [
+        "cargar_cliente: Cooperativa de Trabajo Sur Ltda. (categoría C)",
+        "clasificar: consulta",
+        "responder_consulta: alcanza sí, 2 cita(s)"
+      ],
+      "ruta_ok": true,
+      "dato_clave": true,
+      "faltan": [],
+      "documento_citado": true,
+      "respuesta": "La garantía de las amoladoras (herramienta eléctrica) es de 12 meses contados desde la fecha de factura. Cubre defectos de fabricación y se gestiona a través del service oficial de la marca; Ferretería Industrial Andina actúa como gestor del trámite. No cubre uso indebido, sobrecarga, falta de mantenimiento, conexión a tensión incorrecta, intervención de terceros no autorizados ni el desgaste normal de piezas consumibles. Para iniciar el trámite debe presentar la factura y el número de remito, y contactar al service oficial; Ferretería gestionará la reparación.",
+      "citas": [
+        "politica_devoluciones_2026.pdf",
+        "fichas_tecnicas_2026.pdf"
+      ]
+    },
+    {
+      "id": "MSG-007",
+      "ruta_esperada": "responder_consulta",
+      "ruta_obtenida": "responder_consulta",
+      "log": [
+        "cargar_cliente: Agro Servicios Pampa S.A. (categoría B)",
+        "clasificar: consulta",
+        "responder_consulta: alcanza sí, 1 cita(s)"
+      ],
+      "ruta_ok": true,
+      "dato_clave": true,
+      "faltan": [],
+      "documento_citado": true,
+      "respuesta": "Según la política, el límite de 24 unidades por envío solo se aplica a las zonas 4 y 5. Santa Rosa está en La Pampa, que pertenece a la zona 3, por lo que no hay un límite establecido para aerosoles inflamables en su zona; pueden enviarse la cantidad que necesite, salvo que se apliquen otras restricciones no contempladas en los fragmentos.",
+      "citas": [
+        "logistica_fletes_2026.pdf"
+      ]
+    },
+    {
+      "id": "MSG-008",
+      "ruta_esperada": "responder_consulta",
+      "ruta_obtenida": "responder_consulta",
+      "log": [
+        "cargar_cliente: Ferreteria El Tornillo Feliz S.R.L. (categoría A)",
+        "clasificar: consulta",
+        "responder_consulta: alcanza sí, 1 cita(s)"
+      ],
+      "ruta_ok": true,
+      "dato_clave": true,
+      "faltan": [],
+      "documento_citado": true,
+      "respuesta": "No, al ser cliente con domicilio fiscal en la provincia de Córdoba, no se les aplica percepción de Ingresos Brutos según lo establecido en el Art. 8.",
+      "citas": [
+        "condiciones_comerciales_2026.pdf"
+      ]
+    },
+    {
+      "id": "MSG-009",
+      "ruta_esperada": "confirmar_pedido",
+      "ruta_obtenida": "confirmar_pedido",
+      "log": [
+        "cargar_cliente: Ferreteria El Tornillo Feliz S.R.L. (categoría A)",
+        "clasificar: pedido",
+        "extraer_pedido: 3 producto(s), pago sin indicar",
+        "validar_pedido: forma de pago completada con la habitual (cuenta_corriente)",
+        "validar_pedido: plazo completado con el habitual (30 días)",
+        "validar_pedido: confirmar (0 alerta(s))",
+        "confirmar_pedido: MSG-009 — 200 x AB-1020, 50 x AB-1120, 10 x ME-6030; neto $1,118,000, cuenta_corriente a 30 días, destino Villa Maria"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-010",
+      "ruta_esperada": "confirmar_pedido",
+      "ruta_obtenida": "confirmar_pedido",
+      "log": [
+        "cargar_cliente: Talleres Patagonia S.A. (categoría A)",
+        "clasificar: pedido",
+        "extraer_pedido: 4 producto(s), pago cuenta_corriente",
+        "validar_pedido: destino completado con la localidad del cliente (Neuquen)",
+        "validar_pedido: plazo completado con el habitual (45 días)",
+        "validar_pedido: confirmar (0 alerta(s))",
+        "confirmar_pedido: MSG-010 — 4 x HE-4110, 2 x HE-4500, 30 x SE-5010, 100 x SE-5055; neto $4,073,000, cuenta_corriente a 45 días, destino Neuquen"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-011",
+      "ruta_esperada": "confirmar_pedido",
+      "ruta_obtenida": "confirmar_pedido",
+      "log": [
+        "cargar_cliente: Marcelo Paz Ferreteria (categoría C)",
+        "clasificar: pedido",
+        "extraer_pedido: 2 producto(s), pago anticipado_transferencia",
+        "validar_pedido: destino completado con la localidad del cliente (Bahia Blanca)",
+        "validar_pedido: confirmar (0 alerta(s))",
+        "confirmar_pedido: MSG-011 — 20 x SE-5025, 15 x ME-6030; neto $340,000, anticipado_transferencia, destino Bahia Blanca"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-012",
+      "ruta_esperada": "confirmar_pedido",
+      "ruta_obtenida": "confirmar_pedido",
+      "log": [
+        "cargar_cliente: Agro Servicios Pampa S.A. (categoría B)",
+        "clasificar: pedido",
+        "extraer_pedido: 3 producto(s), pago sin indicar",
+        "validar_pedido: forma de pago completada con la habitual (cuenta_corriente)",
+        "validar_pedido: plazo completado con el habitual (30 días)",
+        "validar_pedido: confirmar (0 alerta(s))",
+        "confirmar_pedido: MSG-012 — 6 x LU-8010, 10 x LU-8090, 2 x FI-7075; neto $1,213,000, cuenta_corriente a 30 días, destino Santa Rosa"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-013",
+      "ruta_esperada": "aprobacion_humana",
+      "ruta_obtenida": "aprobacion_humana",
+      "log": [
+        "cargar_cliente: Metalurgica San Jorge S.A. (categoría A)",
+        "clasificar: pedido",
+        "extraer_pedido: 3 producto(s), pago cuenta_corriente",
+        "validar_pedido: destino completado con la localidad del cliente (Rafaela)",
+        "validar_pedido: humano (1 alerta(s))"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-014",
+      "ruta_esperada": "aprobacion_humana",
+      "ruta_obtenida": "aprobacion_humana",
+      "log": [
+        "cargar_cliente: Insumos del Litoral S.R.L. (categoría B)",
+        "clasificar: pedido",
+        "extraer_pedido: 2 producto(s), pago cuenta_corriente",
+        "validar_pedido: humano (1 alerta(s))"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-015",
+      "ruta_esperada": "aprobacion_humana",
+      "ruta_obtenida": "aprobacion_humana",
+      "log": [
+        "cargar_cliente: Construcciones Del Valle S.R.L. (categoría B)",
+        "clasificar: pedido",
+        "extraer_pedido: 2 producto(s), pago cuenta_corriente",
+        "validar_pedido: destino completado con la localidad del cliente (Godoy Cruz)",
+        "validar_pedido: humano (2 alerta(s))"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-016",
+      "ruta_esperada": "aprobacion_humana",
+      "ruta_obtenida": "aprobacion_humana",
+      "log": [
+        "cargar_cliente: Distribuidora Cuyo Insumos S.A. (categoría A)",
+        "clasificar: pedido",
+        "extraer_pedido: 3 producto(s), pago sin indicar",
+        "validar_pedido: destino completado con la localidad del cliente (San Juan)",
+        "validar_pedido: forma de pago completada con la habitual (cuenta_corriente)",
+        "validar_pedido: plazo completado con el habitual (45 días)",
+        "validar_pedido: humano (3 alerta(s))"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-017",
+      "ruta_esperada": "rechazar_pedido",
+      "ruta_obtenida": "rechazar_pedido",
+      "log": [
+        "cargar_cliente: Industrias Norte Grande S.R.L. (categoría B)",
+        "clasificar: pedido",
+        "extraer_pedido: 2 producto(s), pago cuenta_corriente",
+        "validar_pedido: destino completado con la localidad del cliente (Salta)",
+        "validar_pedido: rechazar (2 alerta(s))",
+        "rechazar_pedido: MSG-017 — mora de 95 días: no se toman pedidos en cuenta corriente, sin excepción"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-018",
+      "ruta_esperada": "derivar_humano",
+      "ruta_obtenida": "derivar_humano",
+      "log": [
+        "cargar_cliente: Ferreteria El Tornillo Feliz S.R.L. (categoría A)",
+        "clasificar: derivar",
+        "derivar_humano: MSG-018 desde clasificar — clasificado como derivar"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-019",
+      "ruta_esperada": "derivar_humano",
+      "ruta_obtenida": "derivar_humano",
+      "log": [
+        "cargar_cliente: Mantenimiento Integral Litoral S.R.L. (categoría C)",
+        "clasificar: derivar",
+        "derivar_humano: MSG-019 desde clasificar — clasificado como derivar"
+      ],
+      "ruta_ok": true
+    },
+    {
+      "id": "MSG-020",
+      "ruta_esperada": "derivar_humano",
+      "ruta_obtenida": "derivar_humano",
+      "log": [
+        "cargar_cliente: Roberto Gimenez Herramientas (categoría C)",
+        "clasificar: derivar",
+        "derivar_humano: MSG-020 desde clasificar — clasificado como derivar"
+      ],
+      "ruta_ok": true
+    }
+  ]
+}
