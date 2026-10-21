@@ -32,8 +32,12 @@ def mostrar(id_mensaje: str, grafo, configuracion: dict) -> None:
     print(f"===== {id_mensaje}")
     for paso in guardado.values["log"]:
         print(f"  {paso}")
-    if guardado.values.get("respuesta") is not None:
-        print(f"  respuesta: {guardado.values['respuesta'].respuesta}")
+    respuesta = guardado.values.get("respuesta")
+    if respuesta is not None:
+        print(f"  respuesta: {respuesta.respuesta}")
+        # Las citas las arma el código a partir de los fragmentos que usó el LLM.
+        for cita in respuesta.citas:
+            print(f"  cita: {cita.documento}, p. {cita.pagina}")
 
     # Un thread frenado tiene un nodo pendiente (next) y el payload del interrupt en sus tareas.
     if guardado.next:
