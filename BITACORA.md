@@ -3,27 +3,12 @@
 Definiciones, decisiones técnicas y conceptuales del sistema, y lo que quedó fuera de alcance.
 Cada decisión lleva su porqué y, cuando las hubo, las alternativas descartadas.
 
-## Estado actual
-
-- **Hecho:** RAG, tools, nodos, grafo, `interrupt()` con checkpointer, `correr.py` (menú) y
-  `evaluar.py`. Medición: **20/20 rama correcta · 8/8 dato clave** (ver sección 8).
-- **Sigue:** completar el informe (`INFORME.md` → PDF de dos carillas).
-- **Dudas abiertas:**
-  - Una consulta de precio (está en `catalogo.csv`, no en los PDF): ¿`derivar` o `consulta` con
-    "no alcanza"? Ninguna consulta de la bandeja lo pide.
-  - Groq a veces devuelve 400 `tool_use_failed` (excepción, no `parsing_error`): frenaría el
-    grafo. No apareció en las pruebas.
-  - El LLM calcula días hábiles (MSG-005 contó el 10/9 como día 1): conclusión correcta,
-    cálculo frágil.
-
----
-
 ## 1. Definiciones (lectura de la política)
 
 | Término                                | Definición                                                                                                                                           | Fuente / argumento                                                                                                                                                 |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Monto neto                              | Precio de lista × cantidad, sin IVA, antes de descuentos                                                                                             | El art. 4 elige el descuento por volumen con el neto, así que es anterior al descuento; se usa igual en el art. 7 (crédito). El documento no lo define del todo. |
-| Descuento total                         | Habitual + volumen + lo que pide el cliente                                                                                                           | Lectura del art. 5. En MSG-016 ("25% total") no cambia el veredicto (va a Gerencia por el descuento, el crédito y el stock).                                                                            |
+| Descuento total                         | Habitual + volumen + lo que pide el cliente                                                                                                           | Lectura del art. 5. En MSG-016 ("25% total") no cambia el veredicto (va a Gerencia por el descuento, el crédito y el stock).                                      |
 | Tope de descuento                       | 20%; 15% si hay herramienta eléctrica Dewalt/Makita/Bosch                                                                                            | Art. 5                                                                                                                                                             |
 | Pedido mínimo                          | 250.000 (A/B); 120.000 (C o monotributo)                                                                                                              | Art. 3: no se rechaza, queda en espera                                                                                                                             |
 | "A 30 días"                            | Cuenta corriente con plazo de 30 días                                                                                                                | Comprar a crédito; los días van en otro campo                                                                                                                    |
@@ -153,17 +138,17 @@ mensaje frenado, no recuerda entre mensajes.
 Reglas por código con `if`; los valores de la política en constantes con nombre y artículo.
 Leer las reglas con el RAG exigiría un LLM y daría veredictos no deterministas.
 
-| # | Regla                                                         | Salida   | Fuente                                       |
-| - | ------------------------------------------------------------- | -------- | -------------------------------------------- |
-| 1 | `extraido: False`                                           | derivar  | —                                           |
-| 2 | SKU inexistente                                               | derivar  | catálogo                                    |
+| # | Regla                                                         | Salida   | Fuente                                             |
+| - | ------------------------------------------------------------- | -------- | -------------------------------------------------- |
+| 1 | `extraido: False`                                           | derivar  | —                                                 |
+| 2 | SKU inexistente                                               | derivar  | catálogo                                          |
 | 3 | Stock insuficiente                                            | humano   | art. 9 (Gerencia decide parcial/sustitución/baja) |
-| 4 | Neto < mínimo                                                | derivar  | art. 3 ("no se rechazan")                    |
-| 5 | Mora > 60 y cuenta corriente                                  | rechazar | art. 7 ("sin excepción")                    |
-| 6 | Mora 30-60                                                    | humano   | art. 7                                       |
-| 7 | Cuenta corriente y saldo + neto > límite                     | humano   | art. 7                                       |
-| 8 | Cuenta corriente sin plazo acordado, o plazo > `dias_plazo` | humano   | art. 6                                       |
-| 9 | Pidió descuento y total > tope                               | humano   | art. 5                                       |
+| 4 | Neto < mínimo                                                | derivar  | art. 3 ("no se rechazan")                          |
+| 5 | Mora > 60 y cuenta corriente                                  | rechazar | art. 7 ("sin excepción")                          |
+| 6 | Mora 30-60                                                    | humano   | art. 7                                             |
+| 7 | Cuenta corriente y saldo + neto > límite                     | humano   | art. 7                                             |
+| 8 | Cuenta corriente sin plazo acordado, o plazo > `dias_plazo` | humano   | art. 6                                             |
+| 9 | Pidió descuento y total > tope                               | humano   | art. 5                                             |
 
 - Se evalúan todas y gana la peor: rechazar > derivar > humano > confirmar. `derivar` queda para
   lo que no se puede evaluar como pedido (extracción fallida, SKU inexistente, bajo el mínimo).
@@ -172,7 +157,7 @@ Leer las reglas con el RAG exigiría un LLM y daría veredictos no deterministas
   MSG-016 (stock + crédito + descuento). Se adoptó esa lectura: la falta de stock es una alerta
   más para Gerencia, que ya está mirando el pedido y decide la entrega parcial o la sustitución
   (art. 9). Si aprueba, el log de `confirmar_pedido` lleva la alerta de stock.
-- Regla 9 sólo si el cliente pidió descuento: si no, Mesa aplica hasta el tope sin consultar
+- Regla 9 sólo si el cliente pidió descueGHnto: si no, Mesa aplica hasta el tope sin consultar
   (MSG-010: 23% con tope 15% → confirmar).
 - Antes de las reglas completa destino, forma de pago y plazo, con una línea de log cada uno.
 - Mora > 60 con pago anticipado no rechaza: no usa crédito.
@@ -263,18 +248,20 @@ Gerencia aprueba, rechaza o lo deja pendiente para retomarlo después (aunque se
 terminal). Un mensaje terminado no se vuelve a correr: el reducer duplicaría el log.
 
 **`evaluar.py`:**
-| Decisión | Por qué |
-|---|---|
-| Checkpoints propios (`checkpoints_eval.sqlite`), borrados al arrancar; threads `eval-MSG-0XX` | Cada medición parte de cero y no pisa lo de `correr.py` |
-| Un pedido frenado cuenta como `aprobacion_humana`; no se retoma | El golden set usa esa rama como resultado esperado; retomar exigiría inventar la decisión de Gerencia |
-| Ruta = nodo pendiente si está frenado; si no, el nodo de la última línea del log | Cada nodo escribe su log empezando por su nombre |
-| Dato clave: tienen que estar **todos** los `debe_contener` | Una respuesta a medias no le sirve al cliente |
+
+| Decisión                                                                                              | Por qué                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Checkpoints propios (`checkpoints_eval.sqlite`), borrados al arrancar; threads `eval-MSG-0XX`      | Cada medición parte de cero y no pisa lo de `correr.py`                                                                                         |
+| Un pedido frenado cuenta como `aprobacion_humana`; no se retoma                                      | El golden set usa esa rama como resultado esperado; retomar exigiría inventar la decisión de Gerencia                                            |
+| Ruta = nodo pendiente si está frenado; si no, el nodo de la última línea del log                    | Cada nodo escribe su log empezando por su nombre                                                                                                   |
+| Dato clave: tienen que estar **todos** los `debe_contener`                                     | Una respuesta a medias no le sirve al cliente                                                                                                      |
 | Comparación normalizada: minúsculas, sin tildes, sin `$` y sin **ningún** espacio en blanco | Mide si el dato está, no cómo lo formateó el modelo. No interpreta números (`1,5 millones` ≠ `1.500.000`): eso volvería la métrica laxa |
-| Si un mensaje lanza una excepción, se registra y la evaluación sigue | Un fallo de red no corta las otras 19 mediciones |
-| Extra: si la respuesta cita el `documento` esperado | Se informa aparte; no entra en los dos números |
-| `evaluacion.json` se escribe al final y se versiona | Es entregable; una corrida cancelada no deja un archivo a medias |
+| Si un mensaje lanza una excepción, se registra y la evaluación sigue                                 | Un fallo de red no corta las otras 19 mediciones                                                                                                   |
+| Extra: si la respuesta cita el `documento` esperado                                                  | Se informa aparte; no entra en los dos números                                                                                                    |
+| `evaluacion.json` se escribe al final y se versiona                                                  | Es entregable; una corrida cancelada no deja un archivo a medias                                                                                   |
 
 **Resultados y qué cambió con la medición:**
+
 - **MSG-016:** el golden set espera `aprobacion_humana`; el sistema lo derivaba por falta de
   stock. Se cambió la regla 3 a `humano` (ver `validar_pedido`).
 - **MSG-001, dato clave:** la primera corrida dio 7/8. La respuesta era correcta, pero el modelo
@@ -330,6 +317,7 @@ Cada concepto con el razonamiento propio que lo sostiene, en limpio.
 - Sin el campo en el estado inicial, leerlo da `KeyError`: por eso todo arranca en `None`.
 
 **Evaluación**
+
 - Se mide con un set fijo y una métrica definida antes de mirar los resultados; la salida
   queda guardada para comparar corridas.
 - El evaluador también es código y puede fallar: ante un número malo, primero ver si el dato
@@ -355,19 +343,19 @@ Cada concepto con el razonamiento propio que lo sostiene, en limpio.
 
 ## 10. Fuera de alcance
 
-| Qué                                                               | Por qué                                                                |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Acumulación de pedidos bajo el mínimo (30 días, art. 3)         | Exige memoria entre mensajes, escribir datos y un disparador por tiempo |
-| Sustituciones y entregas parciales (art. 9)                        | Se derivan; las gestiona una persona                                    |
-| Precio final con descuentos                                        | No lo pide la consigna                                                  |
-| Pedido + pregunta aparte en el mismo mensaje                       | No lo contempla la consigna ni lo trae la bandeja                       |
-| Producto sin SKU                                                   | Ningún pedido de la bandeja lo trae                                    |
-| Sugerir SKU parecidos ante uno inexistente (distancia de edición) | Sólo útil si un agente elige las tools                                |
+| Qué                                                               | Por qué                                                                                                |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Acumulación de pedidos bajo el mínimo (30 días, art. 3)         | Exige memoria entre mensajes, escribir datos y un disparador por tiempo                                 |
+| Ejecutar sustituciones y entregas parciales (art. 9)               | La falta de stock va a Gerencia, que decide; el sistema no arma el pedido parcial ni elige el sustituto |
+| Precio final con descuentos                                        | No lo pide la consigna                                                                                  |
+| Pedido + pregunta aparte en el mismo mensaje                       | No lo contempla la consigna ni lo trae la bandeja                                                       |
+| Producto sin SKU                                                   | Ningún pedido de la bandeja lo trae                                                                    |
+| Sugerir SKU parecidos ante uno inexistente (distancia de edición) | Sólo útil si un agente elige las tools                                                                |
 
 **Mejoras anotadas, no implementadas:**
 
 - Payload: mostrar descuento total y tope sólo cuando el cliente pidió descuento (en MSG-013
   aparece 23% vs 15% sin alerta y puede confundir).
 - Payload: comentario libre de Gerencia; crédito actual junto a la foto.
-- Prompt del RAG: mencionar bonificaciones (ajustar después de la primera medición).
+- Prompt del RAG: mencionar bonificaciones (la medición dio 8/8; queda como mejora si aparece una omisión).
 - Avisar al indexar si un PDF no tiene títulos detectados.
