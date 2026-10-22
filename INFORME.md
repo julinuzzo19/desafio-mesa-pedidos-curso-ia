@@ -44,7 +44,7 @@ conceptos aplicados y lo que quedó fuera de alcance.
 
 ## 2. Cómo correrlo
 
-Ver el [README](../README.md): instalación, configuración (embeddings locales o por API) y
+Ver el [README](README.md): instalación, configuración (embeddings locales o por API) y
 cómo probar el grafo.
 
 ---
@@ -91,7 +91,7 @@ graph TD;
 
 ## 4. Decisiones y por qué
 
-> Pendiente de redactar. Detalle completo en [BITACORA.md](../BITACORA.md). Puntos a cubrir:
+> Pendiente de redactar. Detalle completo en [BITACORA.md](BITACORA.md). Puntos a cubrir:
 
 - **Qué nodo lleva LLM:** texto libre → LLM con structured output; datos y reglas → código.
   `validar_pedido` va sin LLM.
@@ -113,10 +113,18 @@ graph TD;
 | Consultas con el dato clave | — / 8 |
 
 - **Casos que fallan y por qué:** —
-- **Qué llevó más tiempo:** —
+- **Qué llevó más tiempo:**
+  - *El chunking del RAG.* Cortar por tamaño fijo partía la tabla de zonas de flete (MSG-001
+    fallaba por recuperación); agrandar el chunk lo arreglaba pero diluía la regla de vigencia
+    del presupuesto y rompía MSG-005. Hicieron falta tres corridas para ver que el problema no
+    era el tamaño sino respetar la estructura del documento: cortar por sección.
+  - *Las reglas de `validar_pedido`.* La política no define todo: hubo que interpretar el monto
+    neto, cómo se suma el descuento, qué casos rechaza "sin excepción" y cuáles van a Gerencia,
+    y qué salida gana cuando se disparan varias reglas a la vez. La falta de stock se cambió de
+    `derivar` a Gerencia recién con la medición (MSG-016).
 
 ---
 
 ## 6. Fuera de alcance
 
-> Pendiente de redactar. Lista completa en [BITACORA.md](../BITACORA.md), sección 9.
+> Pendiente de redactar. Lista completa en [BITACORA.md](BITACORA.md), sección 10.
