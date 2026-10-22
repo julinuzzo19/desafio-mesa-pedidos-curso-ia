@@ -7,7 +7,10 @@ LangGraph. Hace cuatro cosas:
 - responde las consultas con las políticas, citando documento y página;
 - valida los pedidos contra el catálogo y la cuenta corriente;
 - frena para pedir aprobación a Gerencia cuando la decisión no le corresponde.
-- Informe: [INFORME.md](INFORME.md) (se entrega en PDF).
+
+Documentación:
+
+- Informe: [INFORME.md](INFORME.md) (y [INFORME.pdf](INFORME.pdf)).
 - Definiciones y decisiones: [BITACORA.md](BITACORA.md).
 
 ---
@@ -110,10 +113,12 @@ guardado. Para correrlo de nuevo, `b`.
 | ----------------- | -------------------------------------------------------------------- |
 | MSG-002           | consulta → `responder_consulta`                                   |
 | MSG-009           | pedido → `confirmar_pedido`                                       |
-| MSG-013, 014, 015 | pedido → `aprobacion_humana` (se frena)                           |
-| MSG-016           | pedido → `derivar_humano` (sin stock)                             |
+| MSG-013 a 016    | pedido → `aprobacion_humana` (se frena)                           |
 | MSG-017           | pedido → `rechazar_pedido` (mora de 95 días en cuenta corriente) |
 | MSG-019           | derivar desde `clasificar` (proveedor)                             |
+
+La derivación desde `validar_pedido` (SKU inexistente, monto bajo el mínimo) no tiene ningún caso
+en la bandeja.
 
 ### Por línea de comandos: `scripts/`
 
@@ -176,10 +181,14 @@ quedó en `correr.py`. Tarda varios minutos. Si se cancela, `evaluacion.json` qu
 mesa_pedidos/   config, modelos, rag, datos, tools, estado, nodos, grafo
 correr.py       menú para procesar mensajes y aprobar/rechazar
 evaluar.py      medición contra el golden set → evaluacion.json
+evaluacion.json resultado de la última medición
+requirements.txt dependencias
 scripts/        pruebas manuales (probar_rag, probar_clasificar, probar_grafo)
 data/           políticas (PDF), catálogo, clientes y bandeja
 consigna/       consigna y golden set
 artifacts/      índice FAISS y checkpoints (no se versiona: se regenera)
+INFORME.md      informe (y INFORME.pdf)
+BITACORA.md     definiciones y decisiones
 ```
 
 ## 6. El grafo

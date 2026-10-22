@@ -1,3 +1,5 @@
+E
+
 # Informe — Mesa de Pedidos (Desafío 1)
 
 ## 1. Cómo se desarrolló
@@ -76,13 +78,13 @@ salida gana cuando se disparan varias reglas a la vez.
 
 ## 4. Fuera de alcance
 
-| Qué                                                       | Por qué                                                                        |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Acumular pedidos bajo el mínimo durante 30 días (art. 3) | Exige memoria entre mensajes, escribir datos y un disparador por tiempo         |
-| Ejecutar entregas parciales                                | Las decide Gerencia; el sistema no arma el pedido parcial |
-| Un pedido y una consulta aparte en el mismo mensaje        | No lo contempla la consigna                                                     |
-| Productos pedidos sin SKU                                  | Ningún pedido de la bandeja lo trae                                            |
-| Sugerir SKU parecidos ante uno inexistente                 | Sólo sirve si un agente elige las tools                                        |
+| Qué                                                       | Por qué                                                                |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Acumular pedidos bajo el mínimo durante 30 días (art. 3) | Exige memoria entre mensajes, escribir datos y un disparador por tiempo |
+| Ejecutar entregas parciales                                | Las decide Gerencia; el sistema no arma el pedido parcial               |
+| Un pedido y una consulta aparte en el mismo mensaje        | No lo contempla la consigna                                             |
+| Productos pedidos sin SKU                                  | Ningún pedido de la bandeja lo trae                                    |
+| Sugerir SKU parecidos ante uno inexistente                 | Sólo sirve si un agente elige las tools                                |
 
 ### Mejoras futuras
 
